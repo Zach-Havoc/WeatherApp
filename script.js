@@ -81,6 +81,7 @@ class WeatherDashboard {
             highLowEl: document.getElementById("high-low"),
             hourlyContainer: document.getElementById("hourly-forecast"),
             daysContainer: document.getElementById("forecast-days"),
+            solarLunarModule: document.getElementById("solar-lunar-module"),
             lifestyleBadge: document.getElementById("lifestyle-badge"),
             statusBox: document.getElementById("status-message")
         };
@@ -483,7 +484,7 @@ class WeatherDashboard {
 
     async fetchWeatherCoordinates(lat, lon) {
         this.setStatus("Fetching local weather data...");
-        const endpoint = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,visibility&hourly=temperature_2m,relative_humidity_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=celsius&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto`;
+        const endpoint = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,visibility&hourly=temperature_2m,relative_humidity_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&temperature_unit=celsius&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto`;
 
         try {
             const res = await fetch(endpoint);
@@ -521,6 +522,7 @@ class WeatherDashboard {
         if (!this.state.payload) return;
         this.renderHeroSection();
         this.renderMetrics();
+        this.renderSolarLunarModule();
         this.renderForecasts();
         this.renderDynamicAnalytics();
     }
@@ -561,6 +563,104 @@ class WeatherDashboard {
         this.updateSubmetricValue("Visibility", `${(current.visibility / 1609.34).toFixed(0)} ML`);
         this.updateSubmetricValue("Humidity", `${current.relative_humidity_2m}%`);
         this.updateSubmetricValue("Pressure", `${(current.surface_pressure * 0.02953).toFixed(1)} IN`);
+    }
+
+    renderSolarLunarModule() {
+        if (!this.state.payload || !this.dom.solarLunarModule) return;
+
+        const { daily } = this.state.payload;
+        const sunrise = daily.sunrise?.[0];
+        const sunset = daily.sunset?.[0];
+
+        if (!sunrise || !sunset) {
+            this.dom.solarLunarModule.innerHTML = "";
+            return;
+        }
+
+        const now = new Date();
+        const sunriseTime = new Date(sunrise).getTime();
+        const sunsetTime = new Date(sunset).getTime();
+        const progress = Math.min(Math.max((now.getTime() - sunriseTime) / (sunsetTime - sunriseTime), 0), 1);
+        const arcX = 20 + progress * 220;
+        const arcY = 102 - Math.sin(progress * Math.PI) * 86;
+
+        const moonPhase = this.calculateMoonPhase(now);
+        const moonPhaseLabel = this.getMoonPhaseLabel(moonPhase);
+        const moonPhaseIcon = this.getMoonPhaseIcon(moonPhase);
+
+        this.dom.solarLunarModule.innerHTML = `
+            <div class="astro-module">
+                <div class="astro-arc-card">
+                    <div class="astro-arc-header">
+                        <span>Solar Arc</span>
+                        <span>${this.formatLocalTime(now, { hour: 'numeric', minute: '2-digit' })}</span>
+                    </div>
+                    <div class="astro-arc-track">
+                        <svg viewBox="0 0 260 120" aria-hidden="true">
+                            <path class="astro-arc-path" d="M20,102 C80,-18 180,-18 240,102" />
+                            <circle class="astro-arc-point" cx="${arcX.toFixed(1)}" cy="${arcY.toFixed(1)}" r="8" />
+                        </svg>
+                    </div>
+                    <div class="astro-arc-labels">
+                        <span>Sunrise ${this.formatLocalTime(new Date(sunrise), { hour: 'numeric', minute: '2-digit' })}</span>
+                        <span>Sunset ${this.formatLocalTime(new Date(sunset), { hour: 'numeric', minute: '2-digit' })}</span>
+                    </div>
+                </div>
+                <div class="astro-moon-card">
+                    <div class="moon-phase-badge">${moonPhaseIcon}</div>
+                    <div class="moon-phase-info">
+                        <span class="phase-name">${moonPhaseLabel}</span>
+                        <span class="phase-times">Moonrise N/A<br>Moonset N/A</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    calculateMoonPhase(date) {
+        const year = date.getUTCFullYear();
+        let month = date.getUTCMonth() + 1;
+        const day = date.getUTCDate() + date.getUTCHours() / 24 + date.getUTCMinutes() / 1440;
+
+        if (month < 3) {
+            month += 12;
+            year -= 1;
+        }
+
+        const a = Math.floor(year / 100);
+        const b = 2 - a + Math.floor(a / 4);
+        const jd = Math.floor(365.25 * (year + 4716)) + Math.floor(30.6001 * (month + 1)) + day + b - 1524.5;
+        const daysSinceNew = jd - 2451549.5;
+        const newMoons = daysSinceNew / 29.53058867;
+        let phase = newMoons - Math.floor(newMoons);
+        if (phase < 0) phase += 1;
+        return phase;
+    }
+
+    getMoonPhaseLabel(phase) {
+        if (phase === 0 || phase === 1) return "New Moon";
+        if (phase > 0 && phase < 0.25) return "Waxing Crescent";
+        if (phase === 0.25) return "First Quarter";
+        if (phase > 0.25 && phase < 0.5) return "Waxing Gibbous";
+        if (phase === 0.5) return "Full Moon";
+        if (phase > 0.5 && phase < 0.75) return "Waning Gibbous";
+        if (phase === 0.75) return "Last Quarter";
+        return "Waning Crescent";
+    }
+
+    getMoonPhaseIcon(phase) {
+        if (phase === 0 || phase === 1) return "🌑";
+        if (phase > 0 && phase < 0.25) return "🌒";
+        if (phase === 0.25) return "🌓";
+        if (phase > 0.25 && phase < 0.5) return "🌔";
+        if (phase === 0.5) return "🌕";
+        if (phase > 0.5 && phase < 0.75) return "🌖";
+        if (phase === 0.75) return "🌗";
+        return "🌘";
+    }
+
+    formatLocalTime(date, options = { hour: 'numeric', minute: '2-digit' }) {
+        return new Date(date).toLocaleTimeString('en-US', options);
     }
 
     renderForecasts() {
