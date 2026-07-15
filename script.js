@@ -269,6 +269,7 @@ class WeatherDashboard {
         this.state.city = result.name;
         this.applyLoadingShimmer();
         this.fetchWeatherCoordinates(result.latitude, result.longitude);
+        this.clearSearchInput();
     }
 
     closeDropdown() {
@@ -294,6 +295,7 @@ class WeatherDashboard {
             
             await this.fetchWeatherCoordinates(match.latitude, match.longitude);
             if (autoFavorite) this.saveCurrentCityToFavorites();
+            this.clearSearchInput();
 
         } catch (error) {
             this.removeLoadingShimmer();
@@ -359,6 +361,7 @@ class WeatherDashboard {
         if (this.dom.dateEl) this.dom.dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', hour: 'numeric', minute: '2-digit' });
         if (this.dom.cityNameEl) this.dom.cityNameEl.textContent = this.state.city;
         if (this.dom.conditionTextEl) this.dom.conditionTextEl.textContent = meta.text;
+        if (this.dom.lifestyleBadge) this.renderOutfitBadge(current, meta);
         
         if (this.dom.largeIconEl) {
             this.dom.largeIconEl.textContent = meta.icon;
@@ -372,9 +375,6 @@ class WeatherDashboard {
         if (this.dom.highLowEl) {
             this.dom.highLowEl.innerHTML = `H ${this.formatTemp(daily.temperature_2m_max[0])} &nbsp;L ${this.formatTemp(daily.temperature_2m_min[0])}`;
         }
-
-        // Update the lifestyle advice badge with the current weather
-        this.updateLifestyleAdvice(current.temperature_2m, meta.text, this.state.unit === 'C');
     }
 
     renderMetrics() {
@@ -384,6 +384,41 @@ class WeatherDashboard {
         this.updateSubmetricValue("Visibility", `${(current.visibility / 1609.34).toFixed(0)} ML`);
         this.updateSubmetricValue("Humidity", `${current.relative_humidity_2m}%`);
         this.updateSubmetricValue("Pressure", `${(current.surface_pressure * 0.02953).toFixed(1)} IN`);
+    }
+
+    renderOutfitBadge(current, meta) {
+        if (!this.dom.lifestyleBadge || !current) return;
+
+        const tempC = current.temperature_2m;
+        const code = current.weather_code;
+        const hum = current.relative_humidity_2m || 0;
+        let suggestion = "Wear what feels comfortable.";
+
+        if (tempC <= 5) {
+            suggestion = "Very cold—wear a coat, gloves, and a hat.";
+        } else if (tempC <= 15) {
+            suggestion = "Cool weather—light jacket and layers are ideal.";
+        } else if (tempC <= 22) {
+            suggestion = "Mild conditions—long sleeves or a hoodie will work.";
+        } else if (tempC <= 28) {
+            suggestion = "Warm weather—t-shirt and light pants are best.";
+        } else {
+            suggestion = "Hot day—choose shorts and breathable fabrics.";
+        }
+
+        if ([61, 63, 65, 66, 67, 80, 81, 82, 95].includes(code)) {
+            suggestion = "Expect rain—bring a waterproof jacket or umbrella.";
+        } else if ([71, 73, 75, 77, 85, 86].includes(code)) {
+            suggestion = "Snowy conditions—bundle up with warm layers.";
+        } else if ([45, 48, 3].includes(code)) {
+            suggestion = "Cloudy or foggy—opt for a light jacket and comfortable layers.";
+        }
+
+        if (hum >= 80 && tempC > 22) {
+            suggestion = "Humid and warm—light, breathable clothing is best.";
+        }
+
+        this.dom.lifestyleBadge.textContent = `Outfit: ${suggestion}`;
     }
 
     renderForecasts() {
@@ -595,6 +630,7 @@ class WeatherDashboard {
             setTimeout(() => this.dom.addDashboardBtn.style.transform = "scale(1)", 180);
         }
         this.renderFavoritesSidebar();
+        this.clearSearchInput();
     }
 
     renderFavoritesSidebar() {
@@ -687,54 +723,20 @@ class WeatherDashboard {
         }
     }
 
-    updateLifestyleAdvice(temp, condition, isCelsius = true) {
-        const badgeElement = this.dom.lifestyleBadge || document.getElementById('lifestyle-badge');
-        if (!badgeElement) return;
-
-        const tempC = isCelsius ? temp : (temp - 32) * 5 / 9;
-        const cond = String(condition).toLowerCase();
-        
-        let icon = "🧥";
-        let advice = "Comfortable layers recommended.";
-
-        if (cond.includes('rain') || cond.includes('drizzle') || cond.includes('shower')) {
-            icon = "🌧️";
-            advice = "Wet weather! Wear waterproof shoes & grab a raincoat or umbrella.";
-        } 
-        else if (cond.includes('thunderstorm')) {
-            icon = "⚡";
-            advice = "Severe storms! Best to stay indoors and skip outdoor travel.";
-        } 
-        else if (cond.includes('snow') || cond.includes('ice') || cond.includes('flurries')) {
-            icon = "❄️";
-            advice = "Freezing! Wear a heavy winter coat, gloves, and a beanie.";
-        } 
-        else if (tempC < 10) {
-            icon = "🧥";
-            advice = "Cold day! A thick coat, scarf, and warm layers are a must.";
-        } 
-        else if (tempC >= 10 && tempC < 18) {
-            icon = "🧥";
-            advice = "Chilly morning. A light jacket, sweater, or hoodie will be perfect.";
-        } 
-        else if (tempC >= 18 && tempC < 27) {
-            icon = "👕";
-            advice = "Pleasant weather! T-shirt and jeans are great for today.";
-        } 
-        else if (tempC >= 27) {
-            icon = "☀️";
-            advice = "Hot day! Wear lightweight breathable clothing, sunglasses, and sunscreen.";
-        }
-
-        badgeElement.innerHTML = `<span style="font-size: 16px;">${icon}</span> <span>${advice}</span>`;
-    }
-
     applyLoadingShimmer() {
         const targets = [".main-degrees", ".condition-text", ".high-low", ".metrics-strip", ".hourly-scroll", ".days-row"];
         targets.forEach(sel => {
             const el = document.querySelector(sel);
             if (el) el.classList.add("shimmer-active");
         });
+    }
+
+    clearSearchInput() {
+        if (this.dom.cityInput) {
+            this.dom.cityInput.value = "";
+            this.dom.cityInput.blur();
+        }
+        this.closeDropdown();
     }
 
     removeLoadingShimmer() {
@@ -958,4 +960,3 @@ document.addEventListener("DOMContentLoaded", () => {
     const app = new WeatherDashboard();
     app.init();
 });
-
