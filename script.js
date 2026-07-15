@@ -77,6 +77,7 @@ class WeatherDashboard {
             highLowEl: document.getElementById("high-low"),
             hourlyContainer: document.getElementById("hourly-forecast"),
             daysContainer: document.getElementById("forecast-days"),
+            lifestyleBadge: document.getElementById("lifestyle-badge"),
             statusBox: document.getElementById("status-message")
         };
     }
@@ -268,6 +269,7 @@ class WeatherDashboard {
         this.state.city = result.name;
         this.applyLoadingShimmer();
         this.fetchWeatherCoordinates(result.latitude, result.longitude);
+        this.clearSearchInput();
     }
 
     closeDropdown() {
@@ -293,6 +295,7 @@ class WeatherDashboard {
             
             await this.fetchWeatherCoordinates(match.latitude, match.longitude);
             if (autoFavorite) this.saveCurrentCityToFavorites();
+            this.clearSearchInput();
 
         } catch (error) {
             this.removeLoadingShimmer();
@@ -358,6 +361,7 @@ class WeatherDashboard {
         if (this.dom.dateEl) this.dom.dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', hour: 'numeric', minute: '2-digit' });
         if (this.dom.cityNameEl) this.dom.cityNameEl.textContent = this.state.city;
         if (this.dom.conditionTextEl) this.dom.conditionTextEl.textContent = meta.text;
+        if (this.dom.lifestyleBadge) this.renderOutfitBadge(current, meta);
         
         if (this.dom.largeIconEl) {
             this.dom.largeIconEl.textContent = meta.icon;
@@ -380,6 +384,41 @@ class WeatherDashboard {
         this.updateSubmetricValue("Visibility", `${(current.visibility / 1609.34).toFixed(0)} ML`);
         this.updateSubmetricValue("Humidity", `${current.relative_humidity_2m}%`);
         this.updateSubmetricValue("Pressure", `${(current.surface_pressure * 0.02953).toFixed(1)} IN`);
+    }
+
+    renderOutfitBadge(current, meta) {
+        if (!this.dom.lifestyleBadge || !current) return;
+
+        const tempC = current.temperature_2m;
+        const code = current.weather_code;
+        const hum = current.relative_humidity_2m || 0;
+        let suggestion = "Wear what feels comfortable.";
+
+        if (tempC <= 5) {
+            suggestion = "Very cold—wear a coat, gloves, and a hat.";
+        } else if (tempC <= 15) {
+            suggestion = "Cool weather—light jacket and layers are ideal.";
+        } else if (tempC <= 22) {
+            suggestion = "Mild conditions—long sleeves or a hoodie will work.";
+        } else if (tempC <= 28) {
+            suggestion = "Warm weather—t-shirt and light pants are best.";
+        } else {
+            suggestion = "Hot day—choose shorts and breathable fabrics.";
+        }
+
+        if ([61, 63, 65, 66, 67, 80, 81, 82, 95].includes(code)) {
+            suggestion = "Expect rain—bring a waterproof jacket or umbrella.";
+        } else if ([71, 73, 75, 77, 85, 86].includes(code)) {
+            suggestion = "Snowy conditions—bundle up with warm layers.";
+        } else if ([45, 48, 3].includes(code)) {
+            suggestion = "Cloudy or foggy—opt for a light jacket and comfortable layers.";
+        }
+
+        if (hum >= 80 && tempC > 22) {
+            suggestion = "Humid and warm—light, breathable clothing is best.";
+        }
+
+        this.dom.lifestyleBadge.textContent = `Outfit: ${suggestion}`;
     }
 
     renderForecasts() {
@@ -591,6 +630,7 @@ class WeatherDashboard {
             setTimeout(() => this.dom.addDashboardBtn.style.transform = "scale(1)", 180);
         }
         this.renderFavoritesSidebar();
+        this.clearSearchInput();
     }
 
     renderFavoritesSidebar() {
@@ -689,6 +729,14 @@ class WeatherDashboard {
             const el = document.querySelector(sel);
             if (el) el.classList.add("shimmer-active");
         });
+    }
+
+    clearSearchInput() {
+        if (this.dom.cityInput) {
+            this.dom.cityInput.value = "";
+            this.dom.cityInput.blur();
+        }
+        this.closeDropdown();
     }
 
     removeLoadingShimmer() {
