@@ -22,7 +22,7 @@ A modern, fully-featured weather dashboard application built with vanilla HTML, 
 
 ---
 
-## ✨ Features
+## ✨ Features kier pogi
 
 ### Core Weather Functionality
 - **Real-Time Current Weather Display**: Shows current temperature, weather condition, "feels like" temperature, and high/low forecasts
