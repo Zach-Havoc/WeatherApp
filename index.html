@@ -25,6 +25,10 @@
                     <span class="active">°C</span> / <span>°F</span>
                 </div>
             </div>
+            <form id="search-form" class="search-form">
+                <input id="city-input" type="text" placeholder="Search city" value="Irvine" />
+                <button type="submit">Search</button>
+            </form>
             <button class="btn-add-dashboard">
                 <span class="material-symbols-outlined" style="font-size: 18px;">add</span> Add to Dashboard
             </button>
@@ -39,15 +43,15 @@
                 <!-- Current Temperature Display Block -->
                 <section class="card current-weather-card">
                     <div class="meta-info">
-                        <div class="date-time">Saturday 9:00 AM</div>
-                        <div class="city-name">Irvine</div>
-                        <div class="condition-text">Mostly Sunny</div>
+                        <div class="date-time" id="current-date">Loading weather…</div>
+                        <div class="city-name" id="city-name">Irvine</div>
+                        <div class="condition-text" id="condition-text">Mostly Sunny</div>
                         <div class="temp-display">
-                            <div class="main-degrees">68°</div>
-                            <div class="high-low">H 76° &nbsp;L 52°</div>
+                            <div class="main-degrees" id="main-degrees">68°</div>
+                            <div class="high-low" id="high-low">H 76° &nbsp;L 52°</div>
                         </div>
                     </div>
-                    <span class="material-symbols-outlined weather-icon-large">wb_sunny</span>
+                    <span class="material-symbols-outlined weather-icon-large" id="weather-icon-large">wb_sunny</span>
                 </section>
 
                 <!-- Saved Cities/Locations Tracker -->
@@ -98,67 +102,24 @@
                 <!-- Advanced Metrics Strip & Hourly Scroll Dashboard -->
                 <section class="card data-metrics-card">
                     <div class="metrics-strip">
-                        <div class="metric-item"><span class="label">Feels Like</span><span class="value">64°</span></div>
-                        <div class="metric-item"><span class="label">Wind</span><span class="value">11MPH</span></div>
-                        <div class="metric-item"><span class="label">Visibility</span><span class="value">7ML</span></div>
-                        <div class="metric-item"><span class="label">Humidity</span><span class="value">72%</span></div>
-                        <div class="metric-item"><span class="label">Pressure</span><span class="value">30.9IN</span></div>
+                        <div class="metric-item"><span class="label">Feels Like</span><span class="value" id="feels-like">64°</span></div>
+                        <div class="metric-item"><span class="label">Wind</span><span class="value" id="wind">11MPH</span></div>
+                        <div class="metric-item"><span class="label">Visibility</span><span class="value" id="visibility">7ML</span></div>
+                        <div class="metric-item"><span class="label">Humidity</span><span class="value" id="humidity">72%</span></div>
+                        <div class="metric-item"><span class="label">Pressure</span><span class="value" id="pressure">30.9IN</span></div>
                     </div>
+                    <div id="status-message" class="status-message info">Loading weather…</div>
 
                     <!-- Hourly Scroll Integration -->
                     <div class="hourly-section">
-                        <div class="hourly-scroll">
-                            <div class="hourly-item"><span class="time">Now</span><span class="material-symbols-outlined icon sun">wb_sunny</span><span class="temp">68°</span></div>
-                            <div class="hourly-item"><span class="time">10AM</span><span class="material-symbols-outlined icon sun">wb_sunny</span><span class="temp">70°</span></div>
-                            <div class="hourly-item"><span class="time">11AM</span><span class="material-symbols-outlined icon sun">wb_sunny</span><span class="temp">70°</span></div>
-                            <div class="hourly-item"><span class="time">12AM</span><span class="material-symbols-outlined icon sun">wb_sunny</span><span class="temp">76°</span></div>
-                            <div class="hourly-item"><span class="time">1PM</span><span class="material-symbols-outlined icon sun">wb_sunny</span><span class="temp">76°</span></div>
-                            <div class="hourly-item"><span class="time">2PM</span><span class="material-symbols-outlined icon sun">wb_sunny</span><span class="temp">76°</span></div>
-                            <div class="hourly-item"><span class="time">3PM</span><span class="material-symbols-outlined icon">partly_cloudy_day</span><span class="temp">74°</span></div>
-                            <div class="hourly-item"><span class="time">4PM</span><span class="material-symbols-outlined icon">partly_cloudy_day</span><span class="temp">72°</span></div>
-                            <div class="hourly-item"><span class="time">5PM</span><span class="material-symbols-outlined icon">partly_cloudy_day</span><span class="temp">69°</span></div>
-                            <div class="hourly-item"><span class="time">6PM</span><span class="material-symbols-outlined icon">partly_cloudy_day</span><span class="temp">67°</span></div>
-                        </div>
+                        <div class="hourly-scroll" id="hourly-forecast"></div>
                     </div>
                 </section>
 
                 <!-- 7-Day Extended Forecast View -->
                 <section class="card extended-forecast-card">
                     <div class="chart-overlay-line"></div>
-                    <div class="days-row">
-                        <div class="day-column">
-                            <span class="day-name">Sun</span><span class="day-date">2/12</span>
-                            <span class="material-symbols-outlined icon">wb_sunny</span><span class="range">H 69° L 54°</span>
-                        </div>
-                        <div class="day-column">
-                            <span class="day-name">Mon</span><span class="day-date">2/13</span>
-                            <span class="material-symbols-outlined icon">wb_sunny</span><span class="range">H 72° L 50°</span>
-                        </div>
-                        <div class="day-column">
-                            <span class="day-name">Tue</span><span class="day-date">2/14</span>
-                            <span class="material-symbols-outlined icon">partly_cloudy_day</span><span class="range">H 70° L 50°</span>
-                        </div>
-                        <div class="day-column">
-                            <span class="day-name">Wed</span><span class="day-date">2/15</span>
-                            <span class="material-symbols-outlined icon">air</span><span class="range">H 66° L 52°</span>
-                        </div>
-                        <div class="day-column">
-                            <span class="day-name">Thu</span><span class="day-date">2/16</span>
-                            <span class="material-symbols-outlined icon">rainy</span><span class="range">H 62° L 50°</span>
-                        </div>
-                        <div class="day-column">
-                            <span class="day-name">Fri</span><span class="day-date">2/17</span>
-                            <span class="material-symbols-outlined icon">partly_cloudy_day</span><span class="range">H 71° L 54°</span>
-                        </div>
-                        <div class="day-column">
-                            <span class="day-name">Sat</span><span class="day-date">2/18</span>
-                            <span class="material-symbols-outlined icon">umbrella</span><span class="range">H 64° L 52°</span>
-                        </div>
-                        <div class="day-column">
-                            <span class="day-name">Sun</span><span class="day-date">2/19</span>
-                            <span class="material-symbols-outlined icon">rainy_snow</span><span class="range">H 75° L 54°</span>
-                        </div>
-                    </div>
+                    <div class="days-row" id="forecast-days"></div>
                 </section>
             </div>
         </main>
@@ -185,5 +146,6 @@
 
     </div>
 
+    <script src="script.js"></script>
 </body>
 </html>
