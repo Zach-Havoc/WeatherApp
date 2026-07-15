@@ -25,10 +25,14 @@
                     <span class="active">°C</span> / <span>°F</span>
                 </div>
             </div>
-            <form id="search-form" class="search-form">
-                <input id="city-input" type="text" placeholder="Search city" value="Irvine" />
-                <button type="submit">Search</button>
-            </form>
+            <div class="search-wrapper">
+                <form id="search-form" class="search-form">
+                    <span class="material-symbols-outlined search-icon">search</span>
+                    <input id="city-input" type="text" placeholder="Search city..." autocomplete="off" />
+                    <button type="submit">Search</button>
+                </form>
+                <ul id="search-suggestions" class="search-suggestions" role="listbox" aria-label="City suggestions"></ul>
+            </div>
             <button class="btn-add-dashboard">
                 <span class="material-symbols-outlined" style="font-size: 18px;">add</span> Add to Dashboard
             </button>
@@ -46,6 +50,10 @@
                         <div class="date-time" id="current-date">Loading weather…</div>
                         <div class="city-name" id="city-name">Irvine</div>
                         <div class="condition-text" id="condition-text">Mostly Sunny</div>
+                        
+                        <!-- Dynamic "What to Wear" / Lifestyle Badge -->
+                        <div id="lifestyle-badge" class="lifestyle-badge">Calculating outfit...</div>
+
                         <div class="temp-display">
                             <div class="main-degrees" id="main-degrees">68°</div>
                             <div class="high-low" id="high-low">H 76° &nbsp;L 52°</div>
@@ -56,43 +64,6 @@
 
                 <!-- Saved Cities/Locations Tracker -->
                 <section class="card location-list-card">
-                    <div class="location-item active">
-                        <div>
-                            <div class="time">9:41 AM</div>
-                            <div class="city">Irvine</div>
-                        </div>
-                        <div class="right-flex">
-                            <span class="material-symbols-outlined condition-icon">wb_sunny</span>
-                            <div class="temp">68°</div>
-                        </div>
-                    </div>
-                    
-                    <div class="location-item">
-                        <div>
-                            <div class="time">12:41 PM</div>
-                            <div class="city">New York</div>
-                        </div>
-                        <div class="right-flex">
-                            <span class="material-symbols-outlined condition-icon">cloudy_snowing</span>
-                            <div class="temp">32°</div>
-                        </div>
-                    </div>
-
-                    <div class="location-item">
-                        <div>
-                            <div class="time">9:41 AM</div>
-                            <div class="city">Seattle</div>
-                        </div>
-                        <div class="right-flex">
-                            <span class="material-symbols-outlined condition-icon">rainy</span>
-                            <div class="temp">54°</div>
-                        </div>
-                    </div>
-
-                    <div class="add-location-btn">
-                        <span class="material-symbols-outlined">add</span>
-                        <span>Add New Location</span>
-                    </div>
                 </section>
             </div>
 
@@ -123,26 +94,6 @@
                 </section>
             </div>
         </main>
-
-        <!-- Screen Pagination Center Dots -->
-        <div class="carousel-dots">
-            <div class="dot active"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-        </div>
-
-        <!-- Global Smart Home Tablet Navigation Footer Bar -->
-        <footer class="app-navigation">
-            <div class="nav-item">Dashboard</div>
-            <div class="nav-item active">Weather</div>
-            <div class="nav-item">Climate</div>
-            <div class="nav-item">Security</div>
-            <div class="nav-item"><span class="material-symbols-outlined icon">change_history</span></div>
-            <div class="nav-item">Lights</div>
-            <div class="nav-item">Appliances</div>
-            <div class="nav-item">Energy</div>
-            <div class="nav-item">More</div>
-        </footer>
 
     </div>
 
