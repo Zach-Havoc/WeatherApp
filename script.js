@@ -77,6 +77,7 @@ class WeatherDashboard {
             highLowEl: document.getElementById("high-low"),
             hourlyContainer: document.getElementById("hourly-forecast"),
             daysContainer: document.getElementById("forecast-days"),
+            lifestyleBadge: document.getElementById("lifestyle-badge"),
             statusBox: document.getElementById("status-message")
         };
     }
@@ -371,6 +372,9 @@ class WeatherDashboard {
         if (this.dom.highLowEl) {
             this.dom.highLowEl.innerHTML = `H ${this.formatTemp(daily.temperature_2m_max[0])} &nbsp;L ${this.formatTemp(daily.temperature_2m_min[0])}`;
         }
+
+        // Update the lifestyle advice badge with the current weather
+        this.updateLifestyleAdvice(current.temperature_2m, meta.text, this.state.unit === 'C');
     }
 
     renderMetrics() {
@@ -683,6 +687,48 @@ class WeatherDashboard {
         }
     }
 
+    updateLifestyleAdvice(temp, condition, isCelsius = true) {
+        const badgeElement = this.dom.lifestyleBadge || document.getElementById('lifestyle-badge');
+        if (!badgeElement) return;
+
+        const tempC = isCelsius ? temp : (temp - 32) * 5 / 9;
+        const cond = String(condition).toLowerCase();
+        
+        let icon = "🧥";
+        let advice = "Comfortable layers recommended.";
+
+        if (cond.includes('rain') || cond.includes('drizzle') || cond.includes('shower')) {
+            icon = "🌧️";
+            advice = "Wet weather! Wear waterproof shoes & grab a raincoat or umbrella.";
+        } 
+        else if (cond.includes('thunderstorm')) {
+            icon = "⚡";
+            advice = "Severe storms! Best to stay indoors and skip outdoor travel.";
+        } 
+        else if (cond.includes('snow') || cond.includes('ice') || cond.includes('flurries')) {
+            icon = "❄️";
+            advice = "Freezing! Wear a heavy winter coat, gloves, and a beanie.";
+        } 
+        else if (tempC < 10) {
+            icon = "🧥";
+            advice = "Cold day! A thick coat, scarf, and warm layers are a must.";
+        } 
+        else if (tempC >= 10 && tempC < 18) {
+            icon = "🧥";
+            advice = "Chilly morning. A light jacket, sweater, or hoodie will be perfect.";
+        } 
+        else if (tempC >= 18 && tempC < 27) {
+            icon = "👕";
+            advice = "Pleasant weather! T-shirt and jeans are great for today.";
+        } 
+        else if (tempC >= 27) {
+            icon = "☀️";
+            advice = "Hot day! Wear lightweight breathable clothing, sunglasses, and sunscreen.";
+        }
+
+        badgeElement.innerHTML = `<span style="font-size: 16px;">${icon}</span> <span>${advice}</span>`;
+    }
+
     applyLoadingShimmer() {
         const targets = [".main-degrees", ".condition-text", ".high-low", ".metrics-strip", ".hourly-scroll", ".days-row"];
         targets.forEach(sel => {
@@ -912,3 +958,4 @@ document.addEventListener("DOMContentLoaded", () => {
     const app = new WeatherDashboard();
     app.init();
 });
+
