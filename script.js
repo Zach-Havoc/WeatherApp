@@ -608,13 +608,22 @@ class WeatherDashboard {
         `;
     }
 
-    // --- Favorites Management ---
-    getPinnedFavorites() {
+    // --- Favorites Management (REST API Integration) ---
+    async getPinnedFavorites() {
+        try {
+            const res = await fetch('http://localhost:3001/api/favorites');
+            if (res.ok) {
+                const data = await res.json();
+                return data.data; // Server returns { success: true, data: [...] }
+            }
+        } catch (e) {
+            console.warn("Backend API not reachable. Falling back to localStorage.", e);
+        }
         return JSON.parse(localStorage.getItem("weatherDashboardPinnedFavorites")) || [];
     }
 
-    saveCurrentCityToFavorites() {
-        let list = this.getPinnedFavorites();
+    async saveCurrentCityToFavorites() {
+        let list = await this.getPinnedFavorites();
         const activeFav = { name: this.state.city, lat: this.state.lat, lon: this.state.lon };
 
         if (list.some(item => item.name.toLowerCase() === activeFav.name.toLowerCase())) {
@@ -622,8 +631,22 @@ class WeatherDashboard {
             return;
         }
 
-        list.push(activeFav);
-        localStorage.setItem("weatherDashboardPinnedFavorites", JSON.stringify(list));
+        try {
+            const res = await fetch('http://localhost:3001/api/favorites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(activeFav)
+            });
+            
+            if (!res.ok) {
+                console.warn("API Error, saving locally.");
+                list.push(activeFav);
+                localStorage.setItem("weatherDashboardPinnedFavorites", JSON.stringify(list));
+            }
+        } catch (e) {
+            list.push(activeFav);
+            localStorage.setItem("weatherDashboardPinnedFavorites", JSON.stringify(list));
+        }
         
         if (this.dom.addDashboardBtn) {
             this.dom.addDashboardBtn.style.transform = "scale(1.1)";
@@ -633,7 +656,7 @@ class WeatherDashboard {
         this.clearSearchInput();
     }
 
-    renderFavoritesSidebar() {
+    async renderFavoritesSidebar() {
         if (!this.dom.sidebarContainer) return;
         
         // Find or create scroll wrapper inside the container
@@ -647,7 +670,7 @@ class WeatherDashboard {
         // Keep the DOM list clean
         scrollWrapper.innerHTML = "";
 
-        const favorites = this.getPinnedFavorites();
+        const favorites = await this.getPinnedFavorites();
         const fragment = document.createDocumentFragment();
 
         favorites.forEach(city => {
@@ -670,13 +693,22 @@ class WeatherDashboard {
                 this.fetchWeatherCoordinates(city.lat, city.lon);
             });
 
-            row.querySelector(".delete-btn").addEventListener("click", (e) => {
+            row.querySelector(".delete-btn").addEventListener("click", async (e) => {
                 e.stopPropagation();
                 row.style.opacity = "0";
                 row.style.transform = "translateX(20px)";
-                setTimeout(() => {
-                    const updated = this.getPinnedFavorites().filter(f => f.name !== city.name);
-                    localStorage.setItem("weatherDashboardPinnedFavorites", JSON.stringify(updated));
+                
+                try {
+                    if (city.id) {
+                        await fetch(`http://localhost:3001/api/favorites/${city.id}`, { method: 'DELETE' });
+                    }
+                } catch (err) {
+                    console.warn("API Delete failed, removing from local storage");
+                }
+                
+                setTimeout(async () => {
+                    const updatedList = (await this.getPinnedFavorites()).filter(f => f.name !== city.name);
+                    localStorage.setItem("weatherDashboardPinnedFavorites", JSON.stringify(updatedList));
                     this.renderFavoritesSidebar();
                 }, 200);
             });

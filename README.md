@@ -113,52 +113,38 @@ WeatherApp/
 
 ## ⚙️ Installation & Setup
 
-### Option 1: Python (Recommended for Quick Start)
+### Option 1: Full Stack (Recommended - Node.js Backend)
 
-1. **Clone or Download the Project**
+The application now features a professional Express.js backend for persistent favorites and weather reporting.
+
+1. **Install Dependencies**
    ```bash
-   git clone <repository-url>
-   cd WeatherApp
+   npm install
    ```
 
-2. **Start Local Web Server**
+2. **Start the API Server**
    ```bash
-   # Python 3.x
-   python -m http.server 8000
-
-   # Python 2.x (deprecated but supported)
-   python -m SimpleHTTPServer 8000
+   npm start
    ```
+   *The server will start on `http://localhost:3001` and also serve the frontend files.*
 
 3. **Access in Browser**
-   - Open: `http://127.0.0.1:8000`
-   - The app loads with Manila as the default location
+   - Open: `http://localhost:3001`
+   - The app loads with Manila as the default location.
+   - Adding favorites will now persist to the backend API.
 
-### Option 2: Node.js & http-server
+### Option 2: Frontend Only (Python / http-server)
 
-1. **Install http-server**
-   ```bash
-   npm install -g http-server
-   ```
+If you only want to view the frontend without the backend API (favorites will fall back to localStorage):
 
-2. **Start Server**
-   ```bash
-   http-server
-   ```
+```bash
+# Python 3.x
+python -m http.server 8000
 
-3. **Access**
-   - Open: `http://localhost:8080`
-
-### Option 3: Live Server (VS Code Extension)
-
-1. **Install "Live Server" Extension** in VS Code
-2. **Right-click index.html** → "Open with Live Server"
-3. Browser opens automatically
-
-### Option 4: Direct File Access (Not Recommended)
-
-- Simply open `index.html` in your browser
-- **Note**: Some browser features may not work due to CORS restrictions and security policies
+# Node.js http-server
+npx http-server
+```
+Access at `http://localhost:8000` or `http://localhost:8080`.
 
 ---
 
