@@ -67,6 +67,7 @@ class WeatherDashboard {
             suggestionsEl: document.getElementById("search-suggestions"),
             unitToggle: document.querySelector(".unit-toggle"),
             addDashboardBtn: document.querySelector(".btn-add-dashboard"),
+            sendAlertBtn: document.querySelector(".btn-send-alert"),
             sidebarContainer: document.querySelector(".location-list-card"),
             heroCard: document.querySelector(".current-weather-card"),
             dateEl: document.getElementById("current-date"),
@@ -147,6 +148,10 @@ class WeatherDashboard {
 
         if (this.dom.addDashboardBtn) {
             this.dom.addDashboardBtn.addEventListener("click", () => this.saveCurrentCityToFavorites());
+        }
+
+        if (this.dom.sendAlertBtn) {
+            this.dom.sendAlertBtn.addEventListener("click", () => this.sendPushNotificationAlert());
         }
     }
 
@@ -608,8 +613,63 @@ class WeatherDashboard {
         `;
     }
 
+<<<<<<< Updated upstream
     // --- Favorites Management ---
     getPinnedFavorites() {
+=======
+    // --- Push Notification (External API POST) ---
+    async sendPushNotificationAlert() {
+        const btn = this.dom.sendAlertBtn;
+        if (!btn) return;
+
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px;">hourglass_empty</span> Sending...`;
+        
+        try {
+            const currentTemp = document.getElementById("main-degrees")?.textContent || "";
+            const condition = document.getElementById("condition-text")?.textContent || "";
+            
+            const message = `Weather Update for ${this.state.city}: It is currently ${currentTemp} and ${condition}.`;
+            
+            // The Professor's Requirement: An external POST request
+            const response = await fetch("https://ntfy.sh/my_weather_app_alerts_123", {
+                method: "POST",
+                body: message,
+                headers: {
+                    "Title": "Weather Dashboard Alert",
+                    "Tags": "cloud"
+                }
+            });
+
+            if (response.ok) {
+                btn.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px;">check</span> Sent!`;
+                this.setStatus("Push notification sent successfully!");
+            } else {
+                throw new Error("API rejected the request");
+            }
+        } catch (error) {
+            console.error("Notification API Error:", error);
+            btn.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px;">error</span> Failed`;
+            this.setStatus("Failed to send alert.", true);
+        }
+
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+        }, 3000);
+    }
+
+    // --- Favorites Management (REST API Integration) ---
+    async getPinnedFavorites() {
+        try {
+            const res = await fetch('http://localhost:3001/api/favorites');
+            if (res.ok) {
+                const data = await res.json();
+                return data.data; // Server returns { success: true, data: [...] }
+            }
+        } catch (e) {
+            console.warn("Backend API not reachable. Falling back to localStorage.", e);
+        }
+>>>>>>> Stashed changes
         return JSON.parse(localStorage.getItem("weatherDashboardPinnedFavorites")) || [];
     }
 
