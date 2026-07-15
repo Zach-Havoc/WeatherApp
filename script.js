@@ -9,10 +9,10 @@ class WeatherDashboard {
         this.state = {
             unit: 'C',
             payload: null,
-            city: "Calaca",
-            // Calaca coordinates as default
-            lat: 13.9317,
-            lon: 120.8122,
+            city: "Manila",
+            // Manila coordinates as default
+            lat: 14.5995,
+            lon: 120.9842,
             chartInstance: null
         };
 
@@ -64,9 +64,9 @@ class WeatherDashboard {
         this.dom = {
             searchForm: document.getElementById("search-form"),
             cityInput: document.getElementById("city-input"),
+            suggestionsEl: document.getElementById("search-suggestions"),
             unitToggle: document.querySelector(".unit-toggle"),
             addDashboardBtn: document.querySelector(".btn-add-dashboard"),
-            addLocationSidebarBtn: document.querySelector(".add-location-btn"),
             sidebarContainer: document.querySelector(".location-list-card"),
             heroCard: document.querySelector(".current-weather-card"),
             dateEl: document.getElementById("current-date"),
@@ -121,11 +121,14 @@ class WeatherDashboard {
                 e.preventDefault();
                 const query = this.dom.cityInput.value.trim();
                 if (query) {
+                    this.closeDropdown();
                     this.applyLoadingShimmer();
                     this.fetchLocationCoordinatesByQuery(query);
                 }
             });
         }
+
+        this.bindAutocomplete();
 
         if (this.dom.unitToggle) {
             this.dom.unitToggle.addEventListener("click", () => {
@@ -144,17 +147,135 @@ class WeatherDashboard {
         if (this.dom.addDashboardBtn) {
             this.dom.addDashboardBtn.addEventListener("click", () => this.saveCurrentCityToFavorites());
         }
+    }
 
-        if (this.dom.addLocationSidebarBtn) {
-            this.dom.addLocationSidebarBtn.addEventListener("click", async (e) => {
+    // --- Location Autocomplete ---
+    bindAutocomplete() {
+        const input = this.dom.cityInput;
+        const list  = this.dom.suggestionsEl;
+        if (!input || !list) return;
+
+        // Autocomplete state
+        this._acDebounce  = null;
+        this._acResults   = [];  // last fetched results
+        this._acHighlight = -1;  // highlighted index
+
+        // Debounced input handler
+        input.addEventListener("input", () => {
+            clearTimeout(this._acDebounce);
+            const q = input.value.trim();
+            if (q.length < 2) { this.closeDropdown(); return; }
+            this._acDebounce = setTimeout(() => this.fetchAutocompleteSuggestions(q), 300);
+        });
+
+        // Keyboard navigation (Arrow keys, Enter, Escape)
+        input.addEventListener("keydown", (e) => {
+            if (!list.classList.contains("open")) return;
+            const items = list.querySelectorAll(".suggestion-item");
+            if (!items.length) return;
+
+            if (e.key === "ArrowDown") {
                 e.preventDefault();
-                const newCity = prompt("Enter the name of the city you want to add:");
-                if (newCity && newCity.trim()) {
-                    this.applyLoadingShimmer();
-                    await this.fetchLocationCoordinatesByQuery(newCity.trim(), true);
+                this._acHighlight = Math.min(this._acHighlight + 1, items.length - 1);
+                this.updateHighlight(items);
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                this._acHighlight = Math.max(this._acHighlight - 1, 0);
+                this.updateHighlight(items);
+            } else if (e.key === "Enter") {
+                if (this._acHighlight >= 0 && this._acResults[this._acHighlight]) {
+                    e.preventDefault();
+                    this.selectSuggestion(this._acResults[this._acHighlight]);
                 }
-            });
+            } else if (e.key === "Escape") {
+                this.closeDropdown();
+            }
+        });
+
+        // Close when clicking outside
+        document.addEventListener("click", (e) => {
+            if (!e.target.closest(".search-wrapper")) this.closeDropdown();
+        });
+    }
+
+    async fetchAutocompleteSuggestions(query) {
+        const list = this.dom.suggestionsEl;
+        if (!list) return;
+
+        // Show spinner
+        list.innerHTML = `<li class="suggestion-loading"><div class="suggestion-spinner"></div>Searching…</li>`;
+        list.classList.add("open");
+
+        try {
+            const res = await fetch(
+                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6&language=en&format=json`
+            );
+            if (!res.ok) throw new Error("Geocoding API error.");
+            const data = await res.json();
+
+            this._acResults   = data.results || [];
+            this._acHighlight = -1;
+            this.renderSuggestions(this._acResults);
+        } catch {
+            list.innerHTML = `<li class="suggestion-empty">Could not fetch suggestions.</li>`;
         }
+    }
+
+    renderSuggestions(results) {
+        const list = this.dom.suggestionsEl;
+        if (!list) return;
+
+        if (!results.length) {
+            list.innerHTML = `<li class="suggestion-empty">No locations found.</li>`;
+            list.classList.add("open");
+            return;
+        }
+
+        list.innerHTML = results.map((r, i) => {
+            const country  = r.country  || "";
+            const region   = r.admin1   || "";
+            const subLabel = [region, country].filter(Boolean).join(", ");
+
+            return `
+                <li class="suggestion-item" role="option" data-index="${i}">
+                    <span class="material-symbols-outlined sug-icon">location_on</span>
+                    <div class="sug-text">
+                        <span class="sug-main">${r.name}</span>
+                        ${subLabel ? `<span class="sug-sub">${subLabel}</span>` : ""}
+                    </div>
+                </li>`;
+        }).join("");
+
+        // Attach click handlers
+        list.querySelectorAll(".suggestion-item").forEach((el) => {
+            el.addEventListener("click", () => {
+                const idx = parseInt(el.dataset.index, 10);
+                if (!isNaN(idx) && results[idx]) this.selectSuggestion(results[idx]);
+            });
+        });
+
+        list.classList.add("open");
+    }
+
+    updateHighlight(items) {
+        items.forEach((el, i) => el.classList.toggle("highlighted", i === this._acHighlight));
+        if (this._acHighlight >= 0) items[this._acHighlight].scrollIntoView({ block: "nearest" });
+    }
+
+    selectSuggestion(result) {
+        this.dom.cityInput.value = result.name;
+        this.closeDropdown();
+        this.state.city = result.name;
+        this.applyLoadingShimmer();
+        this.fetchWeatherCoordinates(result.latitude, result.longitude);
+    }
+
+    closeDropdown() {
+        if (this.dom.suggestionsEl) {
+            this.dom.suggestionsEl.classList.remove("open");
+            this.dom.suggestionsEl.innerHTML = "";
+        }
+        this._acHighlight = -1;
     }
 
     // --- API & Data Fetching ---
@@ -527,15 +648,13 @@ class WeatherDashboard {
     }
 
     populateMockFavoritesIfNeeded() {
-        // Populates with Calaca and Balayan defaults
-        if (!localStorage.getItem("weatherDashboardPinnedFavorites")) {
-            const mock = [
-                { name: "Calaca", lat: 13.9317, lon: 120.8122 },
-                { name: "Balayan", lat: 13.9355, lon: 120.7208 },
-                { name: "New York", lat: 40.7128, lon: -74.0060 }
-            ];
-            localStorage.setItem("weatherDashboardPinnedFavorites", JSON.stringify(mock));
-        }
+        // Always seed with the 3 main Philippine cities
+        const mock = [
+            { name: "Manila",  lat: 14.5995,  lon: 120.9842 },
+            { name: "Cebu",    lat: 10.3157,  lon: 123.8854 },
+            { name: "Davao",   lat: 7.1907,   lon: 125.4553 }
+        ];
+        localStorage.setItem("weatherDashboardPinnedFavorites", JSON.stringify(mock));
     }
 
     // --- Helper & Utility Methods ---
@@ -596,30 +715,21 @@ class WeatherDashboard {
             .location-list-card {
                 display: flex !important;
                 flex-direction: column !important;
-                max-height: 480px !important;
+                flex-grow: 0 !important;
+                height: fit-content !important;
+                max-height: none !important;
                 overflow: hidden !important;
             }
             .sidebar-scroll-wrapper {
                 flex-grow: 1 !important;
                 overflow-y: auto !important;
                 padding-right: 4px !important;
-                max-height: 380px !important;
             }
             /* Custom Scrollbar */
-            .sidebar-scroll-wrapper::-webkit-scrollbar {
-                width: 5px;
-            }
-            .sidebar-scroll-wrapper::-webkit-scrollbar-track {
-                background: rgba(255,255,255,0.02);
-                border-radius: 10px;
-            }
-            .sidebar-scroll-wrapper::-webkit-scrollbar-thumb {
-                background: rgba(255,255,255,0.15);
-                border-radius: 10px;
-            }
-            .sidebar-scroll-wrapper::-webkit-scrollbar-thumb:hover {
-                background: rgba(255,255,255,0.3);
-            }
+            .sidebar-scroll-wrapper::-webkit-scrollbar { width: 5px; }
+            .sidebar-scroll-wrapper::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 10px; }
+            .sidebar-scroll-wrapper::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+            .sidebar-scroll-wrapper::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
 
             .location-item {
                 display: flex !important; justify-content: space-between !important;
@@ -633,11 +743,134 @@ class WeatherDashboard {
             .location-item.active { background: rgba(255, 255, 255, 0.25) !important; border-color: rgba(255, 255, 255, 0.4) !important; }
             .location-text-group { display: flex; flex-direction: column; gap: 2px; }
             .location-meta-group { display: flex; align-items: center; gap: 12px; }
-            
+
             .unit-toggle, .btn-add-dashboard, .add-location-btn, #search-form button {
                 transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1) !important; cursor: pointer !important;
             }
             .unit-toggle:hover, .btn-add-dashboard:hover, #search-form button:hover { transform: scale(1.03); filter: brightness(1.1); }
+
+            /* =====================================================
+               AUTOCOMPLETE DROPDOWN — injected for stacking safety
+               ===================================================== */
+            .search-wrapper {
+                position: relative !important;
+                z-index: 1000 !important;
+            }
+            .header-bar {
+                overflow: visible !important;
+            }
+            /* Lift the tablet container overflow so the dropdown isn't clipped */
+            .tablet-container {
+                overflow: visible !important;
+            }
+
+            #search-suggestions {
+                display: none;
+                position: absolute !important;
+                top: calc(100% + 8px) !important;
+                left: 0 !important;
+                right: 0 !important;
+                min-width: 260px !important;
+                background: #1a1d33 !important;
+                border: 1px solid rgba(255,255,255,0.12) !important;
+                border-radius: 14px !important;
+                list-style: none !important;
+                margin: 0 !important;
+                padding: 6px !important;
+                z-index: 99999 !important;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.7) !important;
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                overflow: hidden !important;
+                animation: acDropIn 0.18s ease;
+            }
+            @keyframes acDropIn {
+                from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+                to   { opacity: 1; transform: translateY(0)  scale(1); }
+            }
+            #search-suggestions.open {
+                display: block !important;
+            }
+            #search-suggestions li {
+                list-style: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .suggestion-item {
+                display: flex !important;
+                align-items: center !important;
+                gap: 10px !important;
+                padding: 10px 14px !important;
+                border-radius: 10px !important;
+                cursor: pointer !important;
+                transition: background 0.15s ease !important;
+                color: #ffffff !important;
+                list-style: none !important;
+            }
+            .suggestion-item:hover,
+            .suggestion-item.highlighted {
+                background: rgba(41,98,255,0.28) !important;
+            }
+            .suggestion-item .sug-icon {
+                font-size: 18px !important;
+                color: #5c8aff !important;
+                flex-shrink: 0 !important;
+            }
+            .suggestion-item .sug-text {
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+                gap: 2px !important;
+            }
+            .suggestion-item .sug-main {
+                font-size: 14px !important;
+                font-weight: 600 !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                color: #ffffff !important;
+            }
+            .suggestion-item .sug-sub {
+                font-size: 11px !important;
+                color: rgba(255,255,255,0.5) !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+            }
+            .suggestion-empty {
+                list-style: none !important;
+                padding: 14px !important;
+                font-size: 13px !important;
+                color: rgba(255,255,255,0.4) !important;
+                text-align: center !important;
+            }
+            .suggestion-loading {
+                list-style: none !important;
+                padding: 14px !important;
+                font-size: 13px !important;
+                color: rgba(255,255,255,0.45) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 8px !important;
+            }
+            @keyframes acSpin { to { transform: rotate(360deg); } }
+            .suggestion-spinner {
+                width: 14px !important;
+                height: 14px !important;
+                border: 2px solid rgba(255,255,255,0.15) !important;
+                border-top-color: #2962ff !important;
+                border-radius: 50% !important;
+                animation: acSpin 0.7s linear infinite !important;
+                flex-shrink: 0 !important;
+            }
+            /* Search icon inside form */
+            .search-icon {
+                font-size: 17px !important;
+                color: rgba(255,255,255,0.4) !important;
+                user-select: none !important;
+                flex-shrink: 0 !important;
+            }
 
             /* --- Modern Analytics Graph Card CSS --- */
             .analytics-graph-card {
@@ -653,54 +886,22 @@ class WeatherDashboard {
                 flex-direction: column;
                 gap: 16px;
             }
-            .analytics-header {
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-            }
-            .analytics-header h3 {
-                margin: 0;
-                font-size: 18px;
-                font-weight: 600;
-                letter-spacing: -0.01em;
-            }
-            .analytics-subtitle {
-                font-size: 11px;
-                opacity: 0.6;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-            }
-            .chart-wrapper {
-                position: relative;
-                height: 220px;
-                width: 100%;
-            }
+            .analytics-header { display: flex; flex-direction: column; gap: 4px; }
+            .analytics-header h3 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+            .analytics-subtitle { font-size: 11px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.05em; }
+            .chart-wrapper { position: relative; height: 220px; width: 100%; }
             #weather-analytics-insights {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                border-top: 1px solid rgba(255, 255, 255, 0.06);
-                padding-top: 12px;
+                display: flex; flex-direction: column; gap: 8px;
+                border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px;
             }
-            .insight-row {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 12px;
-            }
+            .insight-row { display: flex; flex-wrap: wrap; gap: 12px; }
             .insight-pill {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                background: rgba(255, 255, 255, 0.04);
-                padding: 6px 12px;
-                border-radius: 20px;
-                font-size: 12px;
-                border: 1px solid rgba(255, 255, 255, 0.05);
+                display: flex; align-items: center; gap: 8px;
+                background: rgba(255,255,255,0.04); padding: 6px 12px;
+                border-radius: 20px; font-size: 12px;
+                border: 1px solid rgba(255,255,255,0.05);
             }
-            .insight-icon {
-                font-size: 16px;
-                color: #60a5fa;
-            }
+            .insight-icon { font-size: 16px; color: #60a5fa; }
         `;
         document.head.appendChild(style);
     }

@@ -98,6 +98,121 @@ body {
     cursor: pointer;
 }
 
+/* ---- Autocomplete Search Wrapper ---- */
+.search-wrapper {
+    position: relative;
+}
+
+.search-icon {
+    font-size: 18px;
+    color: var(--text-muted);
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.search-suggestions {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: #1a1d33;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+    z-index: 9999;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    overflow: hidden;
+    animation: dropdownFadeIn 0.18s ease;
+}
+
+@keyframes dropdownFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.search-suggestions.open {
+    display: block;
+}
+
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    color: var(--text-main);
+}
+
+.suggestion-item:hover,
+.suggestion-item.highlighted {
+    background: rgba(41, 98, 255, 0.25);
+}
+
+.suggestion-item .sug-icon {
+    font-size: 18px;
+    color: var(--accent-blue);
+    flex-shrink: 0;
+}
+
+.suggestion-item .sug-main {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suggestion-item .sug-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+}
+
+.suggestion-item .sug-text {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.suggestion-empty {
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.suggestion-loading {
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.suggestion-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-top-color: var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
 .btn-add-dashboard {
     background-color: transparent;
     color: var(--text-main);
@@ -195,7 +310,8 @@ body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    flex-grow: 1;
+    flex-grow: 0;
+    height: fit-content;
 }
 
 .location-item {
