@@ -104,7 +104,7 @@ class WeatherDashboard {
             </div>
             <div id="weather-analytics-insights"></div>
         `;
-        
+
         // Appends beautifully right under the metrics and before the extended forecast card
         const extendedForecast = document.querySelector(".extended-forecast-card");
         if (extendedForecast) {
@@ -112,7 +112,7 @@ class WeatherDashboard {
         } else {
             rightCol.appendChild(chartSection);
         }
-        
+
         this.dom.chartCanvas = document.getElementById("weatherAnalyticsChart");
         this.dom.insightsContainer = document.getElementById("weather-analytics-insights");
     }
@@ -135,13 +135,13 @@ class WeatherDashboard {
         if (this.dom.unitToggle) {
             this.dom.unitToggle.addEventListener("click", () => {
                 this.state.unit = this.state.unit === 'C' ? 'F' : 'C';
-                
+
                 const spans = this.dom.unitToggle.querySelectorAll("span");
                 if (spans.length >= 2) {
                     spans[0].classList.toggle("active", this.state.unit === 'C');
                     spans[1].classList.toggle("active", this.state.unit === 'F');
                 }
-                
+
                 this.updateUI();
             });
         }
@@ -158,12 +158,12 @@ class WeatherDashboard {
     // --- Location Autocomplete ---
     bindAutocomplete() {
         const input = this.dom.cityInput;
-        const list  = this.dom.suggestionsEl;
+        const list = this.dom.suggestionsEl;
         if (!input || !list) return;
 
         // Autocomplete state
-        this._acDebounce  = null;
-        this._acResults   = [];  // last fetched results
+        this._acDebounce = null;
+        this._acResults = [];  // last fetched results
         this._acHighlight = -1;  // highlighted index
 
         // Debounced input handler
@@ -219,7 +219,7 @@ class WeatherDashboard {
             if (!res.ok) throw new Error("Geocoding API error.");
             const data = await res.json();
 
-            this._acResults   = data.results || [];
+            this._acResults = data.results || [];
             this._acHighlight = -1;
             this.renderSuggestions(this._acResults);
         } catch {
@@ -238,8 +238,8 @@ class WeatherDashboard {
         }
 
         list.innerHTML = results.map((r, i) => {
-            const country  = r.country  || "";
-            const region   = r.admin1   || "";
+            const country = r.country || "";
+            const region = r.admin1 || "";
             const subLabel = [region, country].filter(Boolean).join(", ");
 
             return `
@@ -291,13 +291,13 @@ class WeatherDashboard {
         try {
             const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`);
             if (!res.ok) throw new Error("Search service unavailable.");
-            
+
             const data = await res.json();
             if (!data.results?.length) throw new Error(`Location "${cityName}" not found.`);
 
             const match = data.results[0];
             this.state.city = match.name;
-            
+
             await this.fetchWeatherCoordinates(match.latitude, match.longitude);
             if (autoFavorite) this.saveCurrentCityToFavorites();
             this.clearSearchInput();
@@ -367,11 +367,11 @@ class WeatherDashboard {
         if (this.dom.cityNameEl) this.dom.cityNameEl.textContent = this.state.city;
         if (this.dom.conditionTextEl) this.dom.conditionTextEl.textContent = meta.text;
         if (this.dom.lifestyleBadge) this.renderOutfitBadge(current, meta);
-        
+
         if (this.dom.largeIconEl) {
             this.dom.largeIconEl.textContent = meta.icon;
             this.dom.largeIconEl.style.transform = 'none';
-            this.dom.largeIconEl.offsetHeight; 
+            this.dom.largeIconEl.offsetHeight;
             this.dom.largeIconEl.style.transform = "rotate(360deg) scale(1.1)";
             setTimeout(() => this.dom.largeIconEl.style.transform = "rotate(0deg) scale(1)", 600);
         }
@@ -487,7 +487,7 @@ class WeatherDashboard {
         }
 
         const ctx = this.dom.chartCanvas.getContext("2d");
-        
+
         // Custom Gradients
         const tempGradient = ctx.createLinearGradient(0, 0, 0, 250);
         tempGradient.addColorStop(0, 'rgba(239, 68, 68, 0.4)');
@@ -587,7 +587,7 @@ class WeatherDashboard {
 
     renderSmartInsights(temps, humidities) {
         if (!this.dom.insightsContainer) return;
-        
+
         const avgTemp = Math.round(temps.reduce((a, b) => a + b, 0) / temps.length);
         const maxTemp = Math.max(...temps);
         const avgHum = Math.round(humidities.reduce((a, b) => a + b, 0) / humidities.length);
@@ -613,10 +613,6 @@ class WeatherDashboard {
         `;
     }
 
-<<<<<<< Updated upstream
-    // --- Favorites Management ---
-    getPinnedFavorites() {
-=======
     // --- Push Notification (External API POST) ---
     async sendPushNotificationAlert() {
         const btn = this.dom.sendAlertBtn;
@@ -624,13 +620,13 @@ class WeatherDashboard {
 
         const originalText = btn.innerHTML;
         btn.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px;">hourglass_empty</span> Sending...`;
-        
+
         try {
             const currentTemp = document.getElementById("main-degrees")?.textContent || "";
             const condition = document.getElementById("condition-text")?.textContent || "";
-            
+
             const message = `Weather Update for ${this.state.city}: It is currently ${currentTemp} and ${condition}.`;
-            
+
             // The Professor's Requirement: An external POST request
             const response = await fetch("https://ntfy.sh/my_weather_app_alerts_123", {
                 method: "POST",
@@ -658,18 +654,8 @@ class WeatherDashboard {
         }, 3000);
     }
 
-    // --- Favorites Management (REST API Integration) ---
-    async getPinnedFavorites() {
-        try {
-            const res = await fetch('http://localhost:3001/api/favorites');
-            if (res.ok) {
-                const data = await res.json();
-                return data.data; // Server returns { success: true, data: [...] }
-            }
-        } catch (e) {
-            console.warn("Backend API not reachable. Falling back to localStorage.", e);
-        }
->>>>>>> Stashed changes
+    // --- Favorites Management ---
+    getPinnedFavorites() {
         return JSON.parse(localStorage.getItem("weatherDashboardPinnedFavorites")) || [];
     }
 
@@ -684,7 +670,7 @@ class WeatherDashboard {
 
         list.push(activeFav);
         localStorage.setItem("weatherDashboardPinnedFavorites", JSON.stringify(list));
-        
+
         if (this.dom.addDashboardBtn) {
             this.dom.addDashboardBtn.style.transform = "scale(1.1)";
             setTimeout(() => this.dom.addDashboardBtn.style.transform = "scale(1)", 180);
@@ -695,7 +681,7 @@ class WeatherDashboard {
 
     renderFavoritesSidebar() {
         if (!this.dom.sidebarContainer) return;
-        
+
         // Find or create scroll wrapper inside the container
         let scrollWrapper = this.dom.sidebarContainer.querySelector(".sidebar-scroll-wrapper");
         if (!scrollWrapper) {
@@ -714,7 +700,7 @@ class WeatherDashboard {
             const row = document.createElement("div");
             const isActive = city.name.toLowerCase() === this.state.city.toLowerCase();
             row.className = `location-item ${isActive ? 'active' : ''}`;
-            
+
             row.innerHTML = `
                 <div class="location-text-group">
                     <span class="time" style="font-size: 11px; opacity: 0.6; font-weight: 500;">SAVED LOCATION</span>
@@ -750,9 +736,9 @@ class WeatherDashboard {
     populateMockFavoritesIfNeeded() {
         // Always seed with the 3 main Philippine cities
         const mock = [
-            { name: "Manila",  lat: 14.5995,  lon: 120.9842 },
-            { name: "Cebu",    lat: 10.3157,  lon: 123.8854 },
-            { name: "Davao",   lat: 7.1907,   lon: 125.4553 }
+            { name: "Manila", lat: 14.5995, lon: 120.9842 },
+            { name: "Cebu", lat: 10.3157, lon: 123.8854 },
+            { name: "Davao", lat: 7.1907, lon: 125.4553 }
         ];
         localStorage.setItem("weatherDashboardPinnedFavorites", JSON.stringify(mock));
     }
@@ -771,7 +757,7 @@ class WeatherDashboard {
     updateSubmetricValue(labelStr, value) {
         const container = document.querySelector(".metrics-strip") || document.body;
         const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
-        
+
         let node;
         while ((node = walker.nextNode())) {
             if (node.nodeValue.trim() === labelStr) {
