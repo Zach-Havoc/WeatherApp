@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,15 +9,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-    
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
     <!-- Separated CSS Stylesheet -->
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
 
     <div class="tablet-container">
-        
+
         <!-- Header Section -->
         <header class="header-bar">
             <div class="logo-section">
@@ -31,12 +34,10 @@
                     <input id="city-input" type="text" placeholder="Search city..." autocomplete="off" />
                     <button type="submit">Search</button>
                 </form>
-                <ul id="search-suggestions" class="search-suggestions" role="listbox" aria-label="City suggestions"></ul>
+                <ul id="search-suggestions" class="search-suggestions" role="listbox" aria-label="City suggestions">
+                </ul>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button class="btn-send-alert" style="background: rgba(41, 98, 255, 0.2); color: #fff;">
-                    <span class="material-symbols-outlined" style="font-size: 18px;">notifications</span> Send Alert
-                </button>
                 <button class="btn-add-dashboard">
                     <span class="material-symbols-outlined" style="font-size: 18px;">add</span> Add to Dashboard
                 </button>
@@ -45,17 +46,17 @@
 
         <!-- Main Workspace Panel -->
         <main class="dashboard-grid">
-            
+
             <!-- Left Panel -->
             <div class="left-column">
-                
+
                 <!-- Current Temperature Display Block -->
                 <section class="card current-weather-card">
                     <div class="meta-info">
                         <div class="date-time" id="current-date">Loading weather…</div>
-                        <div class="city-name" id="city-name">Irvine</div>
+                        <div class="city-name" id="city-name">Manila</div>
                         <div class="condition-text" id="condition-text">Mostly Sunny</div>
-                        
+
                         <!-- Dynamic "What to Wear" / Lifestyle Badge -->
                         <div id="lifestyle-badge" class="lifestyle-badge">Calculating outfit...</div>
 
@@ -74,15 +75,20 @@
 
             <!-- Right Panel -->
             <div class="right-column">
-                
+
                 <!-- Advanced Metrics Strip & Hourly Scroll Dashboard -->
                 <section class="card data-metrics-card">
                     <div class="metrics-strip">
-                        <div class="metric-item"><span class="label">Feels Like</span><span class="value" id="feels-like">64°</span></div>
-                        <div class="metric-item"><span class="label">Wind</span><span class="value" id="wind">11MPH</span></div>
-                        <div class="metric-item"><span class="label">Visibility</span><span class="value" id="visibility">7ML</span></div>
-                        <div class="metric-item"><span class="label">Humidity</span><span class="value" id="humidity">72%</span></div>
-                        <div class="metric-item"><span class="label">Pressure</span><span class="value" id="pressure">30.9IN</span></div>
+                        <div class="metric-item"><span class="label">Feels Like</span><span class="value"
+                                id="feels-like">64°</span></div>
+                        <div class="metric-item"><span class="label">Wind</span><span class="value"
+                                id="wind">11MPH</span></div>
+                        <div class="metric-item"><span class="label">Visibility</span><span class="value"
+                                id="visibility">7ML</span></div>
+                        <div class="metric-item"><span class="label">Humidity</span><span class="value"
+                                id="humidity">72%</span></div>
+                        <div class="metric-item"><span class="label">Pressure</span><span class="value"
+                                id="pressure">30.9IN</span></div>
                     </div>
                     <div id="status-message" class="status-message info">Loading weather…</div>
 
@@ -104,4 +110,5 @@
 
     <script src="script.js"></script>
 </body>
+
 </html>
