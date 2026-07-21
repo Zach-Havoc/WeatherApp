@@ -63,6 +63,7 @@ class WeatherDashboard {
     cacheDOM() {
         this.dom = {
             searchForm: document.getElementById("search-form"),
+            countrySelect: document.getElementById("country-select"),
             cityInput: document.getElementById("city-input"),
             suggestionsEl: document.getElementById("search-suggestions"),
             unitToggle: document.querySelector(".unit-toggle"),
@@ -209,10 +210,17 @@ class WeatherDashboard {
         list.innerHTML = `<li class="suggestion-loading"><div class="suggestion-spinner"></div>Searching…</li>`;
         list.classList.add("open");
 
+        const countryCode = this.dom.countrySelect?.value;
+        const params = [
+            `name=${encodeURIComponent(query)}`,
+            'count=6',
+            'language=en',
+            'format=json',
+            countryCode ? `countrycodes=${encodeURIComponent(countryCode)}` : ''
+        ].filter(Boolean).join('&');
+
         try {
-            const res = await fetch(
-                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6&language=en&format=json`
-            );
+            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params}`);
             if (!res.ok) throw new Error("Geocoding API error.");
             const data = await res.json();
 
@@ -285,8 +293,17 @@ class WeatherDashboard {
     // --- API & Data Fetching ---
     async fetchLocationCoordinatesByQuery(cityName, autoFavorite = false) {
         this.setStatus("Searching for city...");
+        const countryCode = this.dom.countrySelect?.value;
+        const params = [
+            `name=${encodeURIComponent(cityName)}`,
+            'count=1',
+            'language=en',
+            'format=json',
+            countryCode ? `countrycodes=${encodeURIComponent(countryCode)}` : ''
+        ].filter(Boolean).join('&');
+
         try {
-            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`);
+            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params}`);
             if (!res.ok) throw new Error("Search service unavailable.");
 
             const data = await res.json();

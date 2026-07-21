@@ -80,6 +80,26 @@ body {
     padding: 6px 10px;
 }
 
+.country-select {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-main);
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    outline: none;
+    min-width: 150px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.country-select option {
+    background: #1a1d33;
+    color: var(--text-main);
+}
+
 .search-form input {
     background: transparent;
     border: none;

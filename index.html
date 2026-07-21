@@ -31,6 +31,16 @@
             <div class="search-wrapper">
                 <form id="search-form" class="search-form">
                     <span class="material-symbols-outlined search-icon">search</span>
+                    <select id="country-select" class="country-select" aria-label="Country filter">
+                        <option value="">All countries</option>
+                        <option value="PH">Philippines</option>
+                        <option value="US">United States</option>
+                        <option value="GB">United Kingdom</option>
+                        <option value="CA">Canada</option>
+                        <option value="AU">Australia</option>
+                        <option value="JP">Japan</option>
+                        <option value="IN">India</option>
+                    </select>
                     <input id="city-input" type="text" placeholder="Search city..." autocomplete="off" />
                     <button type="submit">Search</button>
                 </form>
