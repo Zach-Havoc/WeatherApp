@@ -75,6 +75,8 @@ class WeatherDashboard {
             largeIconEl: document.getElementById("weather-icon-large"),
             mainDegreesEl: document.getElementById("main-degrees"),
             highLowEl: document.getElementById("high-low"),
+            sunriseTimeEl: document.getElementById("sunrise-time"),
+            sunsetTimeEl: document.getElementById("sunset-time"),
             hourlyContainer: document.getElementById("hourly-forecast"),
             daysContainer: document.getElementById("forecast-days"),
             lifestyleBadge: document.getElementById("lifestyle-badge"),
@@ -306,7 +308,7 @@ class WeatherDashboard {
     async fetchWeatherCoordinates(lat, lon) {
         this.setStatus("Fetching local weather data...");
         // Expanded variables to include relative_humidity_2m in hourly telemetry for the analytics chart
-        const endpoint = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,visibility&hourly=temperature_2m,relative_humidity_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=celsius&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto`;
+        const endpoint = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,visibility&hourly=temperature_2m,relative_humidity_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&temperature_unit=celsius&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto`;
 
         try {
             const res = await fetch(endpoint);
@@ -344,6 +346,7 @@ class WeatherDashboard {
     updateUI() {
         if (!this.state.payload) return;
         this.renderHeroSection();
+        this.renderSunCard();
         this.renderMetrics();
         this.renderForecasts();
         this.renderDynamicAnalytics();
@@ -381,6 +384,18 @@ class WeatherDashboard {
         if (this.dom.mainDegreesEl) this.dom.mainDegreesEl.textContent = this.formatTemp(current.temperature_2m);
         if (this.dom.highLowEl) {
             this.dom.highLowEl.innerHTML = `H ${this.formatTemp(daily.temperature_2m_max[0])} &nbsp;L ${this.formatTemp(daily.temperature_2m_min[0])}`;
+        }
+    }
+
+    renderSunCard() {
+        if (!this.state.payload?.daily) return;
+        const { daily } = this.state.payload;
+
+        if (this.dom.sunriseTimeEl) {
+            this.dom.sunriseTimeEl.textContent = daily.sunrise?.[0] ? this.formatTime(daily.sunrise[0]) : 'Unavailable';
+        }
+        if (this.dom.sunsetTimeEl) {
+            this.dom.sunsetTimeEl.textContent = daily.sunset?.[0] ? this.formatTime(daily.sunset[0]) : 'Unavailable';
         }
     }
 
@@ -742,6 +757,11 @@ class WeatherDashboard {
     // --- Helper & Utility Methods ---
     formatTemp(celsius) {
         return this.state.unit === 'F' ? `${Math.round((celsius * 9 / 5) + 32)}°` : `${Math.round(celsius)}°`;
+    }
+
+    formatTime(value) {
+        const date = new Date(value);
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     }
 
     setStatus(message, isError = false) {
