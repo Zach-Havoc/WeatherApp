@@ -464,6 +464,7 @@ class WeatherDashboard {
     showAlertPopup() {
         const hourly = this.state.payload?.hourly;
         if (!hourly?.time?.length || !hourly?.weather_code?.length) {
+            this.showNoAlertMessage();
             return;
         }
 
@@ -478,6 +479,7 @@ class WeatherDashboard {
         });
 
         if (matchIndex === -1) {
+            this.showNoAlertMessage();
             return;
         }
 
@@ -491,6 +493,20 @@ class WeatherDashboard {
         if (this.dom.alertModalTitle) this.dom.alertModalTitle.textContent = leadText;
         if (this.dom.alertModalMessage) {
             this.dom.alertModalMessage.innerHTML = `<strong>Expected around ${timeLabel}</strong><br/>${actionText}<br/><br/>🌂 ${kind === "storm" ? "Stay indoors and avoid outdoor activities." : "Bring an umbrella if you need to go out."}`;
+        }
+
+        if (this.dom.alertModal) {
+            this.dom.alertModal.hidden = false;
+            setTimeout(() => {
+                if (this.dom.alertModal) this.dom.alertModal.classList.add("open");
+            }, 10);
+        }
+    }
+
+    showNoAlertMessage() {
+        if (this.dom.alertModalTitle) this.dom.alertModalTitle.textContent = "✅ All Clear";
+        if (this.dom.alertModalMessage) {
+            this.dom.alertModalMessage.innerHTML = `<strong>No weather alerts for the next 6 hours</strong><br/>Weather conditions look good in your area.<br/><br/>☀️ It's a great day to be outdoors!`;
         }
 
         if (this.dom.alertModal) {
