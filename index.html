@@ -48,11 +48,32 @@
                 </ul>
             </div>
             <div style="display: flex; gap: 10px;">
+                <button id="alert-notification-btn" class="notification-btn" type="button" aria-label="Weather alerts">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">notifications</span>
+                    <span id="alert-badge" class="notification-badge" hidden>!</span>
+                </button>
                 <button class="btn-add-dashboard">
                     <span class="material-symbols-outlined" style="font-size: 18px;">add</span> Add to Dashboard
                 </button>
             </div>
         </header>
+
+        <!-- Custom Alert Modal -->
+        <div id="alert-modal" class="alert-modal" hidden>
+            <div class="alert-modal-overlay"></div>
+            <div class="alert-modal-content">
+                <div class="alert-modal-header">
+                    <span class="alert-modal-icon">⚠️</span>
+                    <h2 id="alert-modal-title">Weather Alert</h2>
+                </div>
+                <div class="alert-modal-body">
+                    <p id="alert-modal-message"></p>
+                </div>
+                <div class="alert-modal-footer">
+                    <button id="alert-modal-close" class="alert-modal-btn" type="button">Got it</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Main Workspace Panel -->
         <main class="dashboard-grid">
