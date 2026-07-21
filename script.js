@@ -3,6 +3,12 @@
  * Optimized for performance, scrollable sidebars, and custom climate analytics.
  */
 
+// Proper fluffy-cloud silhouette (mask), used instead of stacked CSS radial-gradients
+// which left visible seams where the circles overlapped.
+const CLOUD_MASK = "data:image/svg+xml," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><path d="M0 336c0 44.2 35.8 80 80 80h400c53 0 96-43 96-96 0-41.5-26.4-76.8-63.4-90.1 .3-3.9 .4-7.9 .4-11.9 0-70.7-57.3-128-128-128-32.9 0-63 12.4-85.7 32.8C282.6 100.1 244 80 200 80 122 80 60.1 141.9 60.1 219.9c0 3.3 .1 6.6 .3 9.9C25.4 240.4 0 274.9 0 315.2v20.8z"/></svg>'
+);
+
 class WeatherDashboard {
     constructor() {
         // --- Application State ---
@@ -13,24 +19,37 @@ class WeatherDashboard {
             // Manila coordinates as default
             lat: 14.5995,
             lon: 120.9842,
-            chartInstance: null
+            chartInstance: null,
+            airQuality: null,
+            airQualityHourly: { time: [], values: [] },
+            aqiChartInstance: null
         };
+
+        // --- US AQI Category Thresholds ---
+        this.aqiLevels = [
+            { max: 50, label: "Good", color: "#4ade80" },
+            { max: 100, label: "Moderate", color: "#facc15" },
+            { max: 150, label: "Unhealthy (Sensitive)", color: "#fb923c" },
+            { max: 200, label: "Unhealthy", color: "#f87171" },
+            { max: 300, label: "Very Unhealthy", color: "#c084fc" },
+            { max: Infinity, label: "Hazardous", color: "#7f1d1d" }
+        ];
 
         // --- WMO Weather Metadata ---
         this.metadata = {
-            0: { text: "Sunny", icon: "wb_sunny", theme: "linear-gradient(135deg, #FF9900 0%, #FF5E62 100%)" },
-            1: { text: "Mostly Sunny", icon: "wb_sunny", theme: "linear-gradient(135deg, #FF9900 0%, #FF5E62 100%)" },
-            2: { text: "Partly Cloudy", icon: "partly_cloudy_day", theme: "linear-gradient(135deg, #4DA0B0 0%, #D39D38 100%)" },
-            3: { text: "Cloudy", icon: "cloud", theme: "linear-gradient(135deg, #757F9A 0%, #D7DDE8 100%)" },
-            45: { text: "Foggy", icon: "foggy", theme: "linear-gradient(135deg, #606c88 0%, #3f4c6b 100%)" },
-            48: { text: "Rime Fog", icon: "foggy", theme: "linear-gradient(135deg, #606c88 0%, #3f4c6b 100%)" },
-            51: { text: "Light Drizzle", icon: "grain", theme: "linear-gradient(135deg, #373B44 0%, #4286f4 100%)" },
-            61: { text: "Slight Rain", icon: "rainy", theme: "linear-gradient(135deg, #2b5876 0%, #4e4376 100%)" },
-            63: { text: "Moderate Rain", icon: "rainy", theme: "linear-gradient(135deg, #2b5876 0%, #4e4376 100%)" },
-            71: { text: "Slight Snow", icon: "cloudy_snowing", theme: "linear-gradient(135deg, #E0EAFC 0%, #CFDEF3 100%)" },
-            77: { text: "Snow Grains", icon: "cloudy_snowing", theme: "linear-gradient(135deg, #E0EAFC 0%, #CFDEF3 100%)" },
-            85: { text: "Snow Showers", icon: "rainy_snow", theme: "linear-gradient(135deg, #E0EAFC 0%, #CFDEF3 100%)" },
-            95: { text: "Thunderstorm", icon: "thunderstorm", theme: "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)" }
+            0: { text: "Sunny", icon: "wb_sunny", theme: "linear-gradient(135deg, #FF9900 0%, #FF5E62 100%)", atmosphere: "sunny" },
+            1: { text: "Mostly Sunny", icon: "wb_sunny", theme: "linear-gradient(135deg, #FF9900 0%, #FF5E62 100%)", atmosphere: "sunny" },
+            2: { text: "Partly Cloudy", icon: "partly_cloudy_day", theme: "linear-gradient(135deg, #4DA0B0 0%, #D39D38 100%)", atmosphere: "cloudy" },
+            3: { text: "Cloudy", icon: "cloud", theme: "linear-gradient(135deg, #757F9A 0%, #D7DDE8 100%)", atmosphere: "cloudy" },
+            45: { text: "Foggy", icon: "foggy", theme: "linear-gradient(135deg, #606c88 0%, #3f4c6b 100%)", atmosphere: "fog" },
+            48: { text: "Rime Fog", icon: "foggy", theme: "linear-gradient(135deg, #606c88 0%, #3f4c6b 100%)", atmosphere: "fog" },
+            51: { text: "Light Drizzle", icon: "grain", theme: "linear-gradient(135deg, #373B44 0%, #4286f4 100%)", atmosphere: "rain" },
+            61: { text: "Slight Rain", icon: "rainy", theme: "linear-gradient(135deg, #2b5876 0%, #4e4376 100%)", atmosphere: "rain" },
+            63: { text: "Moderate Rain", icon: "rainy", theme: "linear-gradient(135deg, #2b5876 0%, #4e4376 100%)", atmosphere: "rain" },
+            71: { text: "Slight Snow", icon: "cloudy_snowing", theme: "linear-gradient(135deg, #E0EAFC 0%, #CFDEF3 100%)", atmosphere: "snow" },
+            77: { text: "Snow Grains", icon: "cloudy_snowing", theme: "linear-gradient(135deg, #E0EAFC 0%, #CFDEF3 100%)", atmosphere: "snow" },
+            85: { text: "Snow Showers", icon: "rainy_snow", theme: "linear-gradient(135deg, #E0EAFC 0%, #CFDEF3 100%)", atmosphere: "snow" },
+            95: { text: "Thunderstorm", icon: "thunderstorm", theme: "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)", atmosphere: "storm" }
         };
     }
 
@@ -112,6 +131,13 @@ class WeatherDashboard {
                 <canvas id="weatherAnalyticsChart"></canvas>
             </div>
             <div id="weather-analytics-insights"></div>
+            <div class="analytics-header aqi-chart-header">
+                <h3>Air Quality Trend</h3>
+                <span class="analytics-subtitle">12-Hour US AQI Forecast</span>
+            </div>
+            <div class="chart-wrapper aqi-chart-wrapper">
+                <canvas id="weatherAQIChart"></canvas>
+            </div>
         `;
 
         // Appends beautifully right under the metrics and before the extended forecast card
@@ -124,6 +150,7 @@ class WeatherDashboard {
 
         this.dom.chartCanvas = document.getElementById("weatherAnalyticsChart");
         this.dom.insightsContainer = document.getElementById("weather-analytics-insights");
+        this.dom.aqiChartCanvas = document.getElementById("weatherAQIChart");
     }
 
     bindEvents() {
@@ -387,6 +414,8 @@ class WeatherDashboard {
             this.state.lat = lat;
             this.state.lon = lon;
 
+            await this.fetchAirQuality(lat, lon);
+
             this.removeLoadingShimmer();
             this.updateUI();
             this.renderFavoritesSidebar();
@@ -394,6 +423,24 @@ class WeatherDashboard {
         } catch (error) {
             this.removeLoadingShimmer();
             this.setStatus(`API Error: ${error.message}`, true);
+        }
+    }
+
+    // Fetched separately from the main forecast so AQI failures never block weather display
+    async fetchAirQuality(lat, lon) {
+        try {
+            const res = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi&hourly=us_aqi&timezone=auto`);
+            if (!res.ok) throw new Error("AQI service unavailable.");
+
+            const data = await res.json();
+            this.state.airQuality = data.current?.us_aqi ?? null;
+            this.state.airQualityHourly = {
+                time: data.hourly?.time || [],
+                values: data.hourly?.us_aqi || []
+            };
+        } catch {
+            this.state.airQuality = null;
+            this.state.airQualityHourly = { time: [], values: [] };
         }
     }
 
@@ -418,11 +465,14 @@ class WeatherDashboard {
         this.renderMetrics();
         this.renderForecasts();
         this.renderDynamicAnalytics();
+        this.renderAQIChart();
     }
 
     renderHeroSection() {
         const { current, daily } = this.state.payload;
-        const meta = this.metadata[current.weather_code] || { text: "Variable", icon: "cloud", theme: "linear-gradient(135deg, #757F9A 0%, #D7DDE8 100%)" };
+        const meta = this.metadata[current.weather_code] || { text: "Variable", icon: "cloud", theme: "linear-gradient(135deg, #757F9A 0%, #D7DDE8 100%)", atmosphere: "cloudy" };
+
+        this.applyWeatherAtmosphere(meta.atmosphere);
 
         if (this.dom.heroCard) {
             this.dom.heroCard.style.background = meta.theme;
@@ -454,6 +504,88 @@ class WeatherDashboard {
             this.dom.highLowEl.innerHTML = `H ${this.formatTemp(daily.temperature_2m_max[0])} &nbsp;L ${this.formatTemp(daily.temperature_2m_min[0])}`;
         }
     }
+
+    // --- Living Background: shifts the whole app's mood to match the weather ---
+    applyWeatherAtmosphere(atmosphere = "cloudy") {
+        const container = document.querySelector(".tablet-container");
+        if (container) {
+            container.classList.remove("atmo-sunny", "atmo-cloudy", "atmo-rain", "atmo-storm", "atmo-snow", "atmo-fog");
+            container.classList.add(`atmo-${atmosphere}`);
+        }
+        this.renderWeatherFX(atmosphere);
+    }
+
+    renderWeatherFX(atmosphere) {
+        const container = document.querySelector(".tablet-container");
+        if (!container) return;
+
+        let layer = document.getElementById("weather-fx-layer");
+        if (!layer) {
+            layer = document.createElement("div");
+            layer.id = "weather-fx-layer";
+            container.prepend(layer);
+        }
+
+        if (this._fxAtmosphere === atmosphere) return; // already showing this mood
+        this._fxAtmosphere = atmosphere;
+
+        layer.className = `fx-${atmosphere}`;
+        layer.innerHTML = "";
+
+        // Literal sun disc with soft rotating rays — sunny only
+        if (atmosphere === "sunny") {
+            const sun = document.createElement("span");
+            sun.className = "fx-sun";
+            layer.appendChild(sun);
+        }
+
+        // Puffy cloud silhouettes — kept within the header's open sky strip so
+        // they're never hidden behind the opaque card backgrounds below it
+        const cloudCounts = { cloudy: 4, rain: 3, storm: 3, snow: 4 };
+        if (cloudCounts[atmosphere]) {
+            for (let i = 0; i < cloudCounts[atmosphere]; i++) {
+                const cloud = document.createElement("span");
+                cloud.className = "fx-cloud";
+                const scale = 0.4 + Math.random() * 0.35;
+                cloud.style.top = `${4 + Math.random() * 26}px`;
+                cloud.style.setProperty("--fx-scale", scale.toFixed(2));
+                cloud.style.maskImage = `url("${CLOUD_MASK}")`;
+                cloud.style.webkitMaskImage = `url("${CLOUD_MASK}")`;
+                cloud.style.opacity = `${0.6 + Math.random() * 0.25}`;
+                cloud.style.animationDuration = `${34 + Math.random() * 22}s`;
+                cloud.style.animationDelay = `${-Math.random() * 34}s`;
+                layer.appendChild(cloud);
+            }
+        }
+
+        // Falling rain streaks
+        if (atmosphere === "rain" || atmosphere === "storm") {
+            const count = atmosphere === "storm" ? 55 : 32;
+            for (let i = 0; i < count; i++) {
+                const drop = document.createElement("span");
+                drop.className = "fx-raindrop";
+                drop.style.left = `${Math.random() * 100}%`;
+                drop.style.animationDuration = `${0.35 + Math.random() * 0.5}s`;
+                drop.style.animationDelay = `${Math.random() * 2}s`;
+                layer.appendChild(drop);
+            }
+        }
+
+        // Drifting snowflakes
+        if (atmosphere === "snow") {
+            for (let i = 0; i < 28; i++) {
+                const flake = document.createElement("span");
+                flake.className = "fx-snowflake";
+                flake.style.left = `${Math.random() * 100}%`;
+                flake.style.animationDuration = `${5 + Math.random() * 5}s`;
+                flake.style.animationDelay = `${Math.random() * 5}s`;
+                flake.style.opacity = `${0.4 + Math.random() * 0.6}`;
+                layer.appendChild(flake);
+            }
+        }
+        // Fog is a pure CSS haze drift on the layer background — no elements needed.
+    }
+
 
     renderRainAlertBanner() {
         const notificationBtn = this.dom.notificationBtn;
@@ -579,6 +711,21 @@ class WeatherDashboard {
         this.updateSubmetricValue("Visibility", `${(current.visibility / 1609.34).toFixed(0)} ML`);
         this.updateSubmetricValue("Humidity", `${current.relative_humidity_2m}%`);
         this.updateSubmetricValue("Pressure", `${(current.surface_pressure * 0.02953).toFixed(1)} IN`);
+        this.renderAirQuality();
+    }
+
+    renderAirQuality() {
+        const aqi = this.state.airQuality;
+        if (aqi == null) {
+            this.updateSubmetricValue("Air Quality", "N/A");
+            return;
+        }
+
+        const level = this.aqiLevels.find(l => aqi <= l.max);
+        this.updateSubmetricValue("Air Quality", `${level.label} (${aqi})`);
+
+        const valueEl = document.getElementById("air-quality");
+        if (valueEl) valueEl.style.color = level.color;
     }
 
     renderOutfitBadge(current, meta) {
@@ -587,6 +734,10 @@ class WeatherDashboard {
         const tempC = current.temperature_2m;
         const code = current.weather_code;
         const hum = current.relative_humidity_2m || 0;
+        const isRain = [51, 53, 55, 61, 63, 65, 66, 67, 80, 81, 82, 95].includes(code);
+        const isSnow = [71, 73, 75, 77, 85, 86].includes(code);
+        const isCloudyFog = [2, 3, 45, 48].includes(code);
+
         let suggestion = "Wear what feels comfortable.";
 
         if (tempC <= 5) {
@@ -601,19 +752,24 @@ class WeatherDashboard {
             suggestion = "Hot day—choose shorts and breathable fabrics.";
         }
 
-        if ([61, 63, 65, 66, 67, 80, 81, 82, 95].includes(code)) {
-            suggestion = "Expect rain—bring a waterproof jacket or umbrella.";
-        } else if ([71, 73, 75, 77, 85, 86].includes(code)) {
-            suggestion = "Snowy conditions—bundle up with warm layers.";
-        } else if ([45, 48, 3].includes(code)) {
-            suggestion = "Cloudy or foggy—opt for a light jacket and comfortable layers.";
-        }
-
-        if (hum >= 80 && tempC > 22) {
+        // Only applies when there's no rain/snow to warn about — precipitation safety
+        // advice should never be silently replaced by a generic humidity comment.
+        if (hum >= 80 && tempC > 22 && !isRain && !isSnow) {
             suggestion = "Humid and warm—light, breathable clothing is best.";
         }
 
-        this.dom.lifestyleBadge.textContent = `Outfit: ${suggestion}`;
+        if (isRain) {
+            suggestion = "Expect rain—bring a waterproof jacket or umbrella.";
+        } else if (isSnow) {
+            suggestion = "Snowy conditions—bundle up with warm layers.";
+        } else if (isCloudyFog) {
+            suggestion = "Cloudy or foggy—opt for a light jacket and comfortable layers.";
+        }
+
+        this.dom.lifestyleBadge.innerHTML = `
+            <span class="material-symbols-outlined lifestyle-icon">checkroom</span>
+            <span>${suggestion}</span>
+        `;
     }
 
     renderForecasts() {
@@ -803,6 +959,79 @@ class WeatherDashboard {
         `;
     }
 
+    // --- Air Quality Trend Chart (color-coded per US AQI category) ---
+    renderAQIChart() {
+        if (!this.dom.aqiChartCanvas || !window.Chart) return;
+
+        const { time, values } = this.state.airQualityHourly || { time: [], values: [] };
+        if (!values.length) return;
+
+        const datapointsCount = 12;
+        const labels = time.slice(0, datapointsCount).map(t =>
+            new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        );
+        const dataset = values.slice(0, datapointsCount);
+        const levelFor = (v) => this.aqiLevels.find(l => v <= l.max) || this.aqiLevels[this.aqiLevels.length - 1];
+        const pointColors = dataset.map(v => levelFor(v).color);
+
+        if (this.state.aqiChartInstance) {
+            this.state.aqiChartInstance.destroy();
+        }
+
+        const ctx = this.dom.aqiChartCanvas.getContext("2d");
+        const aqiGradient = ctx.createLinearGradient(0, 0, 0, 180);
+        aqiGradient.addColorStop(0, 'rgba(96, 165, 250, 0.35)');
+        aqiGradient.addColorStop(1, 'rgba(96, 165, 250, 0.0)');
+
+        this.state.aqiChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'US AQI',
+                    data: dataset,
+                    borderColor: '#60a5fa',
+                    borderWidth: 2,
+                    backgroundColor: aqiGradient,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: pointColors,
+                    pointBorderColor: pointColors,
+                    pointRadius: 4,
+                    pointHoverRadius: 7
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        titleColor: '#f8fafc',
+                        bodyColor: '#e2e8f0',
+                        callbacks: {
+                            label: (ctx) => `AQI ${ctx.parsed.y} — ${levelFor(ctx.parsed.y).label}`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8', font: { family: 'Inter', size: 10 } }
+                    },
+                    y: {
+                        min: 0,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#94a3b8', font: { family: 'Inter', size: 10 } }
+                    }
+                }
+            }
+        });
+    }
+
     // --- User Preferences API (Professional POST) ---
     async saveUserPreferenceToAPI(preferenceData) {
         try {
@@ -918,7 +1147,9 @@ class WeatherDashboard {
     }
 
     populateMockFavoritesIfNeeded() {
-        // Always seed with the 3 main Philippine cities
+        // Only seed the 3 main Philippine cities if favorites haven't been saved yet
+        if (localStorage.getItem("weatherDashboardPinnedFavorites")) return;
+
         const mock = [
             { name: "Manila", lat: 14.5995, lon: 120.9842 },
             { name: "Cebu", lat: 10.3157, lon: 123.8854 },
@@ -1173,6 +1404,8 @@ class WeatherDashboard {
             .analytics-header h3 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
             .analytics-subtitle { font-size: 11px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.05em; }
             .chart-wrapper { position: relative; height: 220px; width: 100%; }
+            .aqi-chart-header { margin-top: 4px; }
+            .aqi-chart-wrapper { height: 150px; }
             #weather-analytics-insights {
                 display: flex; flex-direction: column; gap: 8px;
                 border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px;
@@ -1185,6 +1418,181 @@ class WeatherDashboard {
                 border: 1px solid rgba(255,255,255,0.05);
             }
             .insight-icon { font-size: 16px; color: #60a5fa; }
+
+            /* --- Living Background: whole-app mood per weather condition --- */
+            .tablet-container {
+                position: relative !important;
+                transition: background 1.4s ease !important;
+            }
+            .tablet-container > .header-bar,
+            .tablet-container > .dashboard-grid {
+                position: relative !important;
+            }
+            .tablet-container > .header-bar {
+                z-index: 2 !important;
+            }
+            .tablet-container > .dashboard-grid {
+                z-index: 1 !important;
+            }
+            .tablet-container.atmo-sunny {
+                background: linear-gradient(180deg, #2f8fd6 0%, #6fc2f5 45%, #ffe6a3 100%) !important;
+                --card-bg: rgba(46, 32, 14, 0.6); --border-color: rgba(255, 200, 120, 0.3); --text-muted: #d8c9ae;
+            }
+            .tablet-container.atmo-cloudy {
+                background: linear-gradient(180deg, #7e97ab 0%, #9fb2c4 50%, #ccd7e0 100%) !important;
+                --card-bg: rgba(26, 33, 44, 0.68); --border-color: rgba(200, 210, 220, 0.22); --text-muted: #b7c2cf;
+            }
+            .tablet-container.atmo-rain {
+                background: linear-gradient(180deg, #45566b 0%, #33465c 55%, #202f41 100%) !important;
+                --card-bg: rgba(14, 21, 34, 0.72); --border-color: rgba(140, 170, 210, 0.24); --text-muted: #a7b8cc;
+            }
+            .tablet-container.atmo-storm {
+                background: linear-gradient(180deg, #1b2431 0%, #131a24 60%, #090c11 100%) !important;
+                --card-bg: rgba(8, 10, 18, 0.78); --border-color: rgba(120, 130, 160, 0.22); --text-muted: #9aa3b8;
+            }
+            .tablet-container.atmo-snow {
+                background: linear-gradient(180deg, #9fb4c7 0%, #c3d3e0 50%, #e9f0f6 100%) !important;
+                --card-bg: rgba(32, 42, 56, 0.6); --border-color: rgba(220, 230, 240, 0.3); --text-muted: #c7d3de;
+            }
+            .tablet-container.atmo-fog {
+                background: linear-gradient(180deg, #8b95a0 0%, #a9b2ba 100%) !important;
+                --card-bg: rgba(28, 32, 40, 0.68); --border-color: rgba(200, 205, 210, 0.22); --text-muted: #bcc2c9;
+            }
+
+            /* Content boxes echo the current sky mood while staying dark enough for text to stay readable */
+            .tablet-container .card,
+            .tablet-container .analytics-graph-card {
+                background: var(--card-bg, #131526) !important;
+                backdrop-filter: blur(18px) !important;
+                -webkit-backdrop-filter: blur(18px) !important;
+                border-color: var(--border-color, #1e223d) !important;
+                transition: background 1.1s ease, border-color 1.1s ease !important;
+            }
+
+            /* Search bar + header button also need to stay dark enough to read against a light sky (snow/fog) */
+            .tablet-container .search-form {
+                background: var(--card-bg, #131526) !important;
+                backdrop-filter: blur(18px) !important;
+                -webkit-backdrop-filter: blur(18px) !important;
+                border-color: var(--border-color, #1e223d) !important;
+                transition: background 1.1s ease, border-color 1.1s ease !important;
+            }
+            .tablet-container .btn-add-dashboard {
+                background: var(--card-bg, #131526) !important;
+                backdrop-filter: blur(18px) !important;
+                -webkit-backdrop-filter: blur(18px) !important;
+                transition: background 1.1s ease !important;
+            }
+            .tablet-container .search-form input::placeholder {
+                color: var(--text-muted, #a5a9cc) !important;
+                opacity: 0.85 !important;
+            }
+            .tablet-container .metric-item .label,
+            .tablet-container .hourly-item .time,
+            .tablet-container .day-column .day-date,
+            .tablet-container .location-item .time {
+                transition: color 1.1s ease !important;
+            }
+
+            #weather-fx-layer {
+                position: absolute !important;
+                inset: 0 !important;
+                overflow: hidden !important;
+                pointer-events: none !important;
+                z-index: 0 !important;
+            }
+
+            /* Sunny: a soft glowing orb — no hard rays, just layered light */
+            .fx-sun {
+                position: absolute; top: 40px; right: 70px; width: 108px; height: 108px;
+                border-radius: 50%;
+                background: radial-gradient(circle, #fff7de 0%, #ffe38f 34%, #ffbe55 66%, rgba(255,190,85,0) 82%);
+                box-shadow:
+                    0 0 50px 14px rgba(255, 224, 150, 0.35),
+                    0 0 120px 50px rgba(255, 200, 110, 0.16);
+                animation: fxSunBreathe 7s ease-in-out infinite;
+            }
+            .fx-sun::before {
+                content: "";
+                position: absolute; inset: -90%;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(255, 236, 190, 0.14) 0%, rgba(255, 236, 190, 0) 72%);
+                animation: fxSunHalo 9s ease-in-out infinite;
+                z-index: -1;
+            }
+            @keyframes fxSunBreathe {
+                0%, 100% { transform: scale(1); opacity: 0.96; }
+                50% { transform: scale(1.035); opacity: 1; }
+            }
+            @keyframes fxSunHalo {
+                0%, 100% { transform: scale(1); opacity: 0.65; }
+                50% { transform: scale(1.18); opacity: 1; }
+            }
+
+            /* Clouds: a real cloud silhouette masked in the mood color, drifting sideways */
+            .fx-cloud {
+                position: absolute; left: -140px; width: 95px; height: 76px;
+                transform: scale(var(--fx-scale, 1));
+                background-color: currentColor;
+                -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;
+                mask-size: contain; mask-repeat: no-repeat; mask-position: center;
+                filter: drop-shadow(0 6px 8px rgba(0,0,0,0.15));
+                animation: fxDrift linear infinite;
+            }
+            .fx-sunny .fx-cloud,
+            .fx-cloudy .fx-cloud,
+            .fx-snow .fx-cloud { color: rgba(255,255,255,0.92); }
+            .fx-rain .fx-cloud,
+            .fx-storm .fx-cloud { color: rgba(163, 177, 196, 0.9); }
+            @keyframes fxDrift {
+                from { transform: scale(var(--fx-scale, 1)) translateX(0); }
+                to   { transform: scale(var(--fx-scale, 1)) translateX(calc(100vw + 400px)); }
+            }
+
+            /* Rain / Storm: falling streaks */
+            .fx-raindrop {
+                position: absolute; top: -40px; width: 2px; height: 60px;
+                background: linear-gradient(to bottom, rgba(173,216,255,0) 0%, rgba(173,216,255,0.55) 100%);
+                animation: fxFall linear infinite;
+            }
+            @keyframes fxFall {
+                from { transform: translateY(-10%); }
+                to   { transform: translateY(120vh); }
+            }
+            .fx-storm::after {
+                content: ""; position: absolute; inset: 0;
+                background: #ffffff; opacity: 0;
+                animation: fxFlash 6s ease-in-out infinite;
+            }
+            @keyframes fxFlash {
+                0%, 92%, 100% { opacity: 0; }
+                93% { opacity: 0.5; }
+                94% { opacity: 0; }
+                95% { opacity: 0.3; }
+                96% { opacity: 0; }
+            }
+
+            /* Snow: gentle falling + swaying flakes */
+            .fx-snowflake {
+                position: absolute; top: -20px; width: 6px; height: 6px; border-radius: 50%;
+                background: rgba(255,255,255,0.9);
+                animation: fxSnowFall linear infinite;
+            }
+            @keyframes fxSnowFall {
+                from { transform: translate(0, -10%); }
+                to   { transform: translate(30px, 120vh); }
+            }
+
+            /* Fog: slow hazy drift, no elements needed */
+            .fx-fog {
+                background: linear-gradient(120deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.10) 100%);
+                background-size: 220% 220%;
+                animation: fxFogDrift 14s ease-in-out infinite;
+            }
+            @keyframes fxFogDrift {
+                0%, 100% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+            }
         `;
         document.head.appendChild(style);
     }
