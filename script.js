@@ -224,7 +224,13 @@ class WeatherDashboard {
             if (!res.ok) throw new Error("Geocoding API error.");
             const data = await res.json();
 
-            this._acResults = data.results || [];
+            const selectedCountry = countryCode?.toUpperCase();
+            const results = Array.isArray(data.results) ? data.results : [];
+            const filteredResults = selectedCountry
+                ? results.filter(item => (item.country_code || '').toUpperCase() === selectedCountry)
+                : results;
+
+            this._acResults = filteredResults;
             this._acHighlight = -1;
             this.renderSuggestions(this._acResults);
         } catch {
@@ -307,9 +313,17 @@ class WeatherDashboard {
             if (!res.ok) throw new Error("Search service unavailable.");
 
             const data = await res.json();
-            if (!data.results?.length) throw new Error(`Location "${cityName}" not found.`);
+            const results = Array.isArray(data.results) ? data.results : [];
+            const selectedCountry = countryCode?.toUpperCase();
+            const filteredResults = selectedCountry
+                ? results.filter(item => (item.country_code || '').toUpperCase() === selectedCountry)
+                : results;
 
-            const match = data.results[0];
+            if (!filteredResults.length) {
+                throw new Error(`No results found in the selected country.`);
+            }
+
+            const match = filteredResults[0];
             this.state.city = match.name;
 
             await this.fetchWeatherCoordinates(match.latitude, match.longitude);
