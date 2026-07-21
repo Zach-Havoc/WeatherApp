@@ -31,6 +31,16 @@
             <div class="search-wrapper">
                 <form id="search-form" class="search-form">
                     <span class="material-symbols-outlined search-icon">search</span>
+                    <select id="country-select" class="country-select" aria-label="Country filter">
+                        <option value="">All countries</option>
+                        <option value="PH">Philippines</option>
+                        <option value="US">United States</option>
+                        <option value="GB">United Kingdom</option>
+                        <option value="CA">Canada</option>
+                        <option value="AU">Australia</option>
+                        <option value="JP">Japan</option>
+                        <option value="IN">India</option>
+                    </select>
                     <input id="city-input" type="text" placeholder="Search city..." autocomplete="off" />
                     <button type="submit">Search</button>
                 </form>
@@ -38,11 +48,32 @@
                 </ul>
             </div>
             <div style="display: flex; gap: 10px;">
+                <button id="alert-notification-btn" class="notification-btn" type="button" aria-label="Weather alerts">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">notifications</span>
+                    <span id="alert-badge" class="notification-badge" hidden>!</span>
+                </button>
                 <button class="btn-add-dashboard">
                     <span class="material-symbols-outlined" style="font-size: 18px;">add</span> Add to Dashboard
                 </button>
             </div>
         </header>
+
+        <!-- Custom Alert Modal -->
+        <div id="alert-modal" class="alert-modal" hidden>
+            <div class="alert-modal-overlay"></div>
+            <div class="alert-modal-content">
+                <div class="alert-modal-header">
+                    <span class="alert-modal-icon">⚠️</span>
+                    <h2 id="alert-modal-title">Weather Alert</h2>
+                </div>
+                <div class="alert-modal-body">
+                    <p id="alert-modal-message"></p>
+                </div>
+                <div class="alert-modal-footer">
+                    <button id="alert-modal-close" class="alert-modal-btn" type="button">Got it</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Main Workspace Panel -->
         <main class="dashboard-grid">
@@ -66,6 +97,26 @@
                         </div>
                     </div>
                     <span class="material-symbols-outlined weather-icon-large" id="weather-icon-large">wb_sunny</span>
+                </section>
+
+                <section class="card sun-events-card">
+                    <div class="sun-events-heading">
+                        <span class="material-symbols-outlined sun-card-icon">light_mode</span>
+                        <div>
+                            <h2>Sunrise & Sunset</h2>
+                            <p class="sun-events-description">Daily celestial times for your location.</p>
+                        </div>
+                    </div>
+                    <div class="sun-times">
+                        <div class="sun-item">
+                            <span class="label">Sunrise</span>
+                            <strong id="sunrise-time">—</strong>
+                        </div>
+                        <div class="sun-item">
+                            <span class="label">Sunset</span>
+                            <strong id="sunset-time">—</strong>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- Saved Cities/Locations Tracker -->

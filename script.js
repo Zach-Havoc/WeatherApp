@@ -82,6 +82,7 @@ class WeatherDashboard {
     cacheDOM() {
         this.dom = {
             searchForm: document.getElementById("search-form"),
+            countrySelect: document.getElementById("country-select"),
             cityInput: document.getElementById("city-input"),
             suggestionsEl: document.getElementById("search-suggestions"),
             unitToggle: document.querySelector(".unit-toggle"),
@@ -94,9 +95,18 @@ class WeatherDashboard {
             largeIconEl: document.getElementById("weather-icon-large"),
             mainDegreesEl: document.getElementById("main-degrees"),
             highLowEl: document.getElementById("high-low"),
+            sunriseTimeEl: document.getElementById("sunrise-time"),
+            sunsetTimeEl: document.getElementById("sunset-time"),
             hourlyContainer: document.getElementById("hourly-forecast"),
             daysContainer: document.getElementById("forecast-days"),
             lifestyleBadge: document.getElementById("lifestyle-badge"),
+            notificationBtn: document.getElementById("alert-notification-btn"),
+            notificationBadge: document.getElementById("alert-badge"),
+            alertModal: document.getElementById("alert-modal"),
+            alertModalOverlay: document.querySelector(".alert-modal-overlay"),
+            alertModalClose: document.getElementById("alert-modal-close"),
+            alertModalTitle: document.getElementById("alert-modal-title"),
+            alertModalMessage: document.getElementById("alert-modal-message"),
             statusBox: document.getElementById("status-message")
         };
     }
@@ -175,6 +185,35 @@ class WeatherDashboard {
         if (this.dom.addDashboardBtn) {
             this.dom.addDashboardBtn.addEventListener("click", () => this.saveCurrentCityToFavorites());
         }
+
+        if (this.dom.notificationBtn) {
+            this.dom.notificationBtn.addEventListener("click", () => {
+                this.showAlertPopup();
+            });
+        }
+
+        if (this.dom.alertModalClose) {
+            this.dom.alertModalClose.addEventListener("click", () => this.closeAlertModal());
+        }
+
+        if (this.dom.alertModalOverlay) {
+            this.dom.alertModalOverlay.addEventListener("click", () => this.closeAlertModal());
+        }
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && this.dom.alertModal && !this.dom.alertModal.hidden) {
+                this.closeAlertModal();
+            }
+        });
+    }
+
+    closeAlertModal() {
+        if (this.dom.alertModal) {
+            this.dom.alertModal.classList.remove("open");
+            setTimeout(() => {
+                if (this.dom.alertModal) this.dom.alertModal.hidden = true;
+            }, 300);
+        }
     }
 
     // --- Location Autocomplete ---
@@ -234,14 +273,27 @@ class WeatherDashboard {
         list.innerHTML = `<li class="suggestion-loading"><div class="suggestion-spinner"></div>Searching…</li>`;
         list.classList.add("open");
 
+        const countryCode = this.dom.countrySelect?.value;
+        const params = [
+            `name=${encodeURIComponent(query)}`,
+            'count=6',
+            'language=en',
+            'format=json',
+            countryCode ? `countrycodes=${encodeURIComponent(countryCode)}` : ''
+        ].filter(Boolean).join('&');
+
         try {
-            const res = await fetch(
-                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6&language=en&format=json`
-            );
+            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params}`);
             if (!res.ok) throw new Error("Geocoding API error.");
             const data = await res.json();
 
-            this._acResults = data.results || [];
+            const selectedCountry = countryCode?.toUpperCase();
+            const results = Array.isArray(data.results) ? data.results : [];
+            const filteredResults = selectedCountry
+                ? results.filter(item => (item.country_code || '').toUpperCase() === selectedCountry)
+                : results;
+
+            this._acResults = filteredResults;
             this._acHighlight = -1;
             this.renderSuggestions(this._acResults);
         } catch {
@@ -310,14 +362,31 @@ class WeatherDashboard {
     // --- API & Data Fetching ---
     async fetchLocationCoordinatesByQuery(cityName, autoFavorite = false) {
         this.setStatus("Searching for city...");
+        const countryCode = this.dom.countrySelect?.value;
+        const params = [
+            `name=${encodeURIComponent(cityName)}`,
+            'count=1',
+            'language=en',
+            'format=json',
+            countryCode ? `countrycodes=${encodeURIComponent(countryCode)}` : ''
+        ].filter(Boolean).join('&');
+
         try {
-            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`);
+            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params}`);
             if (!res.ok) throw new Error("Search service unavailable.");
 
             const data = await res.json();
-            if (!data.results?.length) throw new Error(`Location "${cityName}" not found.`);
+            const results = Array.isArray(data.results) ? data.results : [];
+            const selectedCountry = countryCode?.toUpperCase();
+            const filteredResults = selectedCountry
+                ? results.filter(item => (item.country_code || '').toUpperCase() === selectedCountry)
+                : results;
 
-            const match = data.results[0];
+            if (!filteredResults.length) {
+                throw new Error(`No results found in the selected country.`);
+            }
+
+            const match = filteredResults[0];
             this.state.city = match.name;
 
             await this.fetchWeatherCoordinates(match.latitude, match.longitude);
@@ -333,7 +402,7 @@ class WeatherDashboard {
     async fetchWeatherCoordinates(lat, lon) {
         this.setStatus("Fetching local weather data...");
         // Expanded variables to include relative_humidity_2m in hourly telemetry for the analytics chart
-        const endpoint = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,visibility&hourly=temperature_2m,relative_humidity_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=celsius&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto`;
+        const endpoint = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,visibility&hourly=temperature_2m,relative_humidity_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&temperature_unit=celsius&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto`;
 
         try {
             const res = await fetch(endpoint);
@@ -390,7 +459,9 @@ class WeatherDashboard {
     // --- Core UI Updates ---
     updateUI() {
         if (!this.state.payload) return;
+        this.renderRainAlertBanner();
         this.renderHeroSection();
+        this.renderSunCard();
         this.renderMetrics();
         this.renderForecasts();
         this.renderDynamicAnalytics();
@@ -514,6 +585,124 @@ class WeatherDashboard {
         }
         // Fog is a pure CSS haze drift on the layer background — no elements needed.
     }
+
+
+    renderRainAlertBanner() {
+        const notificationBtn = this.dom.notificationBtn;
+        const notificationBadge = this.dom.notificationBadge;
+        const hourly = this.state.payload?.hourly;
+
+        if (!hourly?.time?.length || !hourly?.weather_code?.length) {
+            if (notificationBtn) notificationBtn.classList.remove("active");
+            if (notificationBadge) {
+                notificationBadge.hidden = true;
+                notificationBadge.textContent = "!";
+            }
+            return;
+        }
+
+        const currentTime = this.state.payload?.current?.time ? new Date(this.state.payload.current.time) : new Date();
+        const lookAheadMs = 6 * 60 * 60 * 1000;
+        const matchIndex = hourly.time.findIndex((timeStamp, index) => {
+            const stampTime = new Date(timeStamp);
+            const isFuture = stampTime.getTime() >= currentTime.getTime();
+            const withinWindow = stampTime.getTime() <= currentTime.getTime() + lookAheadMs;
+            const code = hourly.weather_code[index];
+            return isFuture && withinWindow && typeof code === "number" && code >= 61 && code <= 99;
+        });
+
+        if (matchIndex === -1) {
+            if (notificationBtn) notificationBtn.classList.remove("active");
+            if (notificationBadge) {
+                notificationBadge.hidden = true;
+                notificationBadge.textContent = "!";
+            }
+            return;
+        }
+
+        if (notificationBtn) notificationBtn.classList.add("active");
+        if (notificationBadge) {
+            notificationBadge.hidden = false;
+            notificationBadge.textContent = "!";
+        }
+    }
+
+    showAlertPopup() {
+        const hourly = this.state.payload?.hourly;
+        if (!hourly?.time?.length || !hourly?.weather_code?.length) {
+            this.showNoAlertMessage();
+            return;
+        }
+
+        const currentTime = this.state.payload?.current?.time ? new Date(this.state.payload.current.time) : new Date();
+        const lookAheadMs = 6 * 60 * 60 * 1000;
+        const matchIndex = hourly.time.findIndex((timeStamp, index) => {
+            const stampTime = new Date(timeStamp);
+            const isFuture = stampTime.getTime() >= currentTime.getTime();
+            const withinWindow = stampTime.getTime() <= currentTime.getTime() + lookAheadMs;
+            const code = hourly.weather_code[index];
+            return isFuture && withinWindow && typeof code === "number" && code >= 61 && code <= 99;
+        });
+
+        if (matchIndex === -1) {
+            this.showNoAlertMessage();
+            return;
+        }
+
+        const matchTime = new Date(hourly.time[matchIndex]);
+        const matchCode = hourly.weather_code[matchIndex];
+        const timeLabel = this.formatAlertTime(matchTime);
+        const kind = matchCode >= 95 ? "storm" : "rain";
+        const leadText = kind === "storm" ? "⛈️ Thunderstorm Warning" : "🌧️ Heavy Rain Alert";
+        const actionText = kind === "storm" ? "Strong winds and heavy precipitation are expected." : "Rainfall expected in the area.";
+
+        if (this.dom.alertModalTitle) this.dom.alertModalTitle.textContent = leadText;
+        if (this.dom.alertModalMessage) {
+            this.dom.alertModalMessage.innerHTML = `<strong>Expected around ${timeLabel}</strong><br/>${actionText}<br/><br/>🌂 ${kind === "storm" ? "Stay indoors and avoid outdoor activities." : "Bring an umbrella if you need to go out."}`;
+        }
+
+        if (this.dom.alertModal) {
+            this.dom.alertModal.hidden = false;
+            setTimeout(() => {
+                if (this.dom.alertModal) this.dom.alertModal.classList.add("open");
+            }, 10);
+        }
+    }
+
+    showNoAlertMessage() {
+        if (this.dom.alertModalTitle) this.dom.alertModalTitle.textContent = "✅ All Clear";
+        if (this.dom.alertModalMessage) {
+            this.dom.alertModalMessage.innerHTML = `<strong>No weather alerts for the next 6 hours</strong><br/>Weather conditions look good in your area.<br/><br/>☀️ It's a great day to be outdoors!`;
+        }
+
+        if (this.dom.alertModal) {
+            this.dom.alertModal.hidden = false;
+            setTimeout(() => {
+                if (this.dom.alertModal) this.dom.alertModal.classList.add("open");
+            }, 10);
+        }
+    }
+
+    formatAlertTime(date) {
+        const hours = date.getHours();
+        const suffix = hours >= 12 ? "PM" : "AM";
+        const hour12 = hours % 12 || 12;
+        return `${hour12}${suffix}`;
+    }
+
+
+    renderSunCard() {
+        if (!this.state.payload?.daily) return;
+        const { daily } = this.state.payload;
+
+        if (this.dom.sunriseTimeEl) {
+            this.dom.sunriseTimeEl.textContent = daily.sunrise?.[0] ? this.formatTime(daily.sunrise[0]) : 'Unavailable';
+        }
+        if (this.dom.sunsetTimeEl) {
+            this.dom.sunsetTimeEl.textContent = daily.sunset?.[0] ? this.formatTime(daily.sunset[0]) : 'Unavailable';
+        }
+    }
+
 
     renderMetrics() {
         const { current } = this.state.payload;
@@ -972,6 +1161,11 @@ class WeatherDashboard {
     // --- Helper & Utility Methods ---
     formatTemp(celsius) {
         return this.state.unit === 'F' ? `${Math.round((celsius * 9 / 5) + 32)}°` : `${Math.round(celsius)}°`;
+    }
+
+    formatTime(value) {
+        const date = new Date(value);
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     }
 
     setStatus(message, isError = false) {
