@@ -67,7 +67,6 @@ class WeatherDashboard {
             suggestionsEl: document.getElementById("search-suggestions"),
             unitToggle: document.querySelector(".unit-toggle"),
             addDashboardBtn: document.querySelector(".btn-add-dashboard"),
-            sendAlertBtn: document.querySelector(".btn-send-alert"),
             sidebarContainer: document.querySelector(".location-list-card"),
             heroCard: document.querySelector(".current-weather-card"),
             dateEl: document.getElementById("current-date"),
@@ -148,10 +147,6 @@ class WeatherDashboard {
 
         if (this.dom.addDashboardBtn) {
             this.dom.addDashboardBtn.addEventListener("click", () => this.saveCurrentCityToFavorites());
-        }
-
-        if (this.dom.sendAlertBtn) {
-            this.dom.sendAlertBtn.addEventListener("click", () => this.sendPushNotificationAlert());
         }
     }
 
@@ -363,7 +358,14 @@ class WeatherDashboard {
             this.dom.heroCard.style.color = "#ffffff";
         }
 
-        if (this.dom.dateEl) this.dom.dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', hour: 'numeric', minute: '2-digit' });
+        if (this.dom.dateEl) {
+            const options = { weekday: 'long', hour: 'numeric', minute: '2-digit' };
+            if (this.state.payload.timezone) {
+                options.timeZone = this.state.payload.timezone;
+            }
+            // Use toLocaleString to properly format both date and time with the target timezone
+            this.dom.dateEl.textContent = new Date().toLocaleString('en-US', options);
+        }
         if (this.dom.cityNameEl) this.dom.cityNameEl.textContent = this.state.city;
         if (this.dom.conditionTextEl) this.dom.conditionTextEl.textContent = meta.text;
         if (this.dom.lifestyleBadge) this.renderOutfitBadge(current, meta);
@@ -613,45 +615,33 @@ class WeatherDashboard {
         `;
     }
 
-    // --- Push Notification (External API POST) ---
-    async sendPushNotificationAlert() {
-        const btn = this.dom.sendAlertBtn;
-        if (!btn) return;
-
-        const originalText = btn.innerHTML;
-        btn.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px;">hourglass_empty</span> Sending...`;
-
+    // --- User Preferences API (Professional POST) ---
+    async saveUserPreferenceToAPI(preferenceData) {
         try {
-            const currentTemp = document.getElementById("main-degrees")?.textContent || "";
-            const condition = document.getElementById("condition-text")?.textContent || "";
-
-            const message = `Weather Update for ${this.state.city}: It is currently ${currentTemp} and ${condition}.`;
-
-            // The Professor's Requirement: An external POST request
-            const response = await fetch("https://ntfy.sh/my_weather_app_alerts_123", {
-                method: "POST",
-                body: message,
+            const response = await fetch('/api/user/preferences', {
+                method: 'POST',
                 headers: {
-                    "Title": "Weather Dashboard Alert",
-                    "Tags": "cloud"
-                }
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    timestamp: new Date().toISOString(),
+                    data: preferenceData
+                })
             });
 
-            if (response.ok) {
-                btn.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px;">check</span> Sent!`;
-                this.setStatus("Push notification sent successfully!");
-            } else {
-                throw new Error("API rejected the request");
+            if (!response.ok) {
+                console.warn('API sync failed - data saved locally only');
+                return false;
             }
-        } catch (error) {
-            console.error("Notification API Error:", error);
-            btn.innerHTML = `<span class="material-symbols-outlined" style="font-size: 18px;">error</span> Failed`;
-            this.setStatus("Failed to send alert.", true);
-        }
 
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-        }, 3000);
+            const result = await response.json();
+            console.log('Preference synced successfully:', result);
+            return true;
+        } catch (error) {
+            console.warn('API sync unavailable - data saved locally only:', error.message);
+            return false;
+        }
     }
 
     // --- Favorites Management ---
@@ -659,7 +649,7 @@ class WeatherDashboard {
         return JSON.parse(localStorage.getItem("weatherDashboardPinnedFavorites")) || [];
     }
 
-    saveCurrentCityToFavorites() {
+    async saveCurrentCityToFavorites() {
         let list = this.getPinnedFavorites();
         const activeFav = { name: this.state.city, lat: this.state.lat, lon: this.state.lon };
 
@@ -670,6 +660,12 @@ class WeatherDashboard {
 
         list.push(activeFav);
         localStorage.setItem("weatherDashboardPinnedFavorites", JSON.stringify(list));
+
+        // Sync with backend API
+        await this.saveUserPreferenceToAPI({
+            action: 'add_favorite',
+            location: activeFav
+        });
 
         if (this.dom.addDashboardBtn) {
             this.dom.addDashboardBtn.style.transform = "scale(1.1)";
